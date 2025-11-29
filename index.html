@@ -455,22 +455,39 @@
     authBox.style.display = 'none';
     mainUI.style.display = 'block';
     leftbar.style.display = 'flex';
-    loadSection('descubre');
     
-    // Configurar el botón de enviar después de mostrar la UI
+    // Configurar el botón de enviar
+    setupSendButton();
+    
+    loadSection('descubre');
+  }
+
+  function setupSendButton() {
     const sendBtn = document.getElementById('send');
     const textArea = document.getElementById('text');
     
-    sendBtn.onclick = async () => {
-      const txt = textArea.value.trim();
+    // Remover cualquier listener anterior
+    const newSendBtn = sendBtn.cloneNode(true);
+    sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
+    
+    newSendBtn.addEventListener('click', async () => {
+      const currentTextArea = document.getElementById('text');
+      const currentSendBtn = document.getElementById('send');
+      const txt = currentTextArea.value.trim();
       
-      if (!txt) return;
+      console.log('Click en enviar, texto:', txt);
+      
+      if (!txt) {
+        console.log('Texto vacío, saliendo');
+        return;
+      }
       
       // Deshabilitar mientras se envía
-      textArea.disabled = true;
-      sendBtn.disabled = true;
-      const originalText = sendBtn.textContent;
-      sendBtn.textContent = 'Enviando...';
+      currentTextArea.disabled = true;
+      currentSendBtn.disabled = true;
+      currentSendBtn.textContent = 'Enviando...';
+      
+      console.log('Enviando mensaje...');
       
       try {
         const t = Date.now();
@@ -484,18 +501,22 @@
           likes: 0
         });
         
+        console.log('Mensaje enviado exitosamente');
+        
         // Limpiar
-        textArea.value = '';
+        currentTextArea.value = '';
       } catch (error) {
         console.error('Error al enviar:', error);
         alert('Error al enviar el mensaje. Intenta de nuevo.');
-      } finally {
-        // Siempre rehabilitar
-        textArea.disabled = false;
-        sendBtn.disabled = false;
-        sendBtn.textContent = originalText;
       }
-    };
+      
+      // Siempre rehabilitar
+      console.log('Rehabilitando controles');
+      currentTextArea.disabled = false;
+      currentSendBtn.disabled = false;
+      currentSendBtn.textContent = 'Enviar';
+      currentTextArea.focus();
+    });
   }
 
   function renderPost(key, p) {
