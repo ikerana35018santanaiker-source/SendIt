@@ -455,6 +455,7 @@
   <button data-sec="inicio">Inicio</button>
   <button data-sec="descubre">Descubre</button>
   <button data-sec="popular">Popular</button>
+  <button data-sec="siguiendo">Siguiendo</button>
   <button data-sec="perfil">Perfil</button>
 </div>
 
@@ -568,16 +569,16 @@ function showMain() {
   loadSection('descubre');
 }
 
-function renderPost(key, p, isDetail = false) {
+function renderPost(key, p, isDetail = false, showPinned = false) {
   const div = document.createElement('div');
   div.className = 'post';
   const avatar = p.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${p.user}`;
   
   const isOwner = currentUser.username === p.user;
   const deleteBtn = isOwner ? `<span data-action="delete" data-key="${key}" style="color:#ef4444;">🗑️ Eliminar</span>` : '';
-  const pinBtn = isOwner && !isDetail ? `<span data-action="pin" data-key="${key}" style="color:#fbbf24;">📌 ${p.pinned ? 'Desfijar' : 'Fijar'}</span>` : '';
+  const pinBtn = isOwner && showPinned && !isDetail ? `<span data-action="pin" data-key="${key}" style="color:#fbbf24;">📌 ${p.pinned ? 'Desfijar' : 'Fijar'}</span>` : '';
   
-  const pinnedBadge = p.pinned ? '<div class="pinned-badge">📌 Post Fijado</div>' : '';
+  const pinnedBadge = p.pinned && showPinned ? '<div class="pinned-badge">📌 Post Fijado</div>' : '';
   
   div.innerHTML = `
     ${pinnedBadge}
@@ -852,6 +853,11 @@ function loadSection(sec) {
     return;
   }
 
+  if (sec === 'siguiendo') {
+    loadFollowingSection();
+    return;
+  }
+
   const postsRef = ref(db,'xposts');
   const postsQuery = query(postsRef, limitToLast(100));
 
@@ -866,16 +872,56 @@ function loadSection(sec) {
     // Ordenar por fecha
     if(sec==='popular') arr.sort((a,b)=>(b[1].likes||0)-(a[1].likes||0));
     else {
-      // Ordenar: primero fijados, luego por fecha
-      arr.sort((a, b) => {
-        if (a[1].pinned && !b[1].pinned) return -1;
-        if (!a[1].pinned && b[1].pinned) return 1;
-        return b[1].timestamp - a[1].timestamp;
-      });
+      arr.sort((a, b) => b[1].timestamp - a[1].timestamp);
     }
 
     arr.forEach(([k,p])=>postsEl.appendChild(renderPost(k,p)));
   });
+}
+
+function loadFollowingSection() {
+  postsEl.innerHTML = '<h2 style="margin-bottom:20px;font-size:24px;">Usuarios que sigues</h2>';
+  
+  const followingRef = ref(db, `following/${currentUser.username}`);
+  
+  onValue(followingRef, (snap) => {
+    const following = snap.val();
+    
+    if (!following || Object.keys(following).length === 0) {
+      postsEl.innerHTML += '<div style="text-align:center;padding:40px;color:#999;">No sigues a nadie aún. ¡Explora y encuentra usuarios interesantes!</div>';
+      return;
+    }
+    
+    const container = document.createElement('div');
+    container.style.cssText = 'display:grid;gap:16px;';
+    
+    Object.keys(following).forEach(username => {
+      // Obtener info del usuario
+      const userProfileRef = ref(db, `userProfiles/${username}`);
+      onValue(userProfileRef, (userSnap) => {
+        const profile = userSnap.val();
+        const avatar = profile?.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${username}`;
+        
+        const userCard = document.createElement('div');
+        userCard.className = 'post';
+        userCard.style.cursor = 'pointer';
+        userCard.innerHTML = `
+          <div class="meta">
+            <img class="profileIcon" src="${avatar}" />
+            <div style="flex:1;">
+              <div class="username">${username}</div>
+            </div>
+            <button style="padding:8px 16px;border:none;border-radius:8px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;cursor:pointer;font-weight:600;">Ver perfil</button>
+          </div>
+        `;
+        
+        userCard.onclick = () => viewUserProfile(username);
+        container.appendChild(userCard);
+      }, { onlyOnce: true });
+    });
+    
+    postsEl.appendChild(container);
+  }, { onlyOnce: true });
 }
 
 function saveProfile() {
@@ -970,7 +1016,11 @@ function viewUserProfile(username) {
     const profileHeader = document.createElement('div');
     profileHeader.className = 'user-profile-header';
     
-    // Contar posts del usuario
+    // Verificar si seguimos a este usuario
+    const isFollowing = isUserFollowing(username);
+    const isOwnProfile = username === currentUser.username;
+    
+    // Contar posts del usuario y seguidores
     const postsRef = ref(db, 'xposts');
     onValue(postsRef, (postsSnap) => {
       let postCount = 0;
@@ -978,44 +1028,116 @@ function viewUserProfile(username) {
         if (childSnap.val().user === username) postCount++;
       });
       
-      profileHeader.innerHTML = `
-        <div class="user-profile-banner" style="background-image:url('${banner}');background-size:cover;background-position:center;"></div>
-        <div class="user-profile-info">
-          <img src="${avatar}" class="user-profile-avatar" />
-          <div class="user-profile-name">${username}</div>
-          <div class="user-profile-stats">
-            <div><strong>${postCount}</strong> Posts</div>
-          </div>
-        </div>
-      `;
-      
-      postsEl.appendChild(profileHeader);
-      
-      // Botón para compartir perfil
-      const shareProfileBtn = document.createElement('button');
-      shareProfileBtn.textContent = '🔗 Compartir perfil';
-      shareProfileBtn.style.cssText = 'margin:10px 0 20px 0;padding:10px 20px;border:none;border-radius:12px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;cursor:pointer;font-weight:600;';
-      shareProfileBtn.onclick = () => {
-        const url = location.origin + location.pathname + `?user=${username}`;
-        navigator.clipboard.writeText(url);
-        alert('¡Link del perfil copiado!');
-      };
-      postsEl.appendChild(shareProfileBtn);
-      
-      // Título de posts
-      const postsTitle = document.createElement('h3');
-      postsTitle.textContent = 'Posts';
-      postsTitle.style.cssText = 'margin:20px 0 16px 0;font-size:20px;';
-      postsEl.appendChild(postsTitle);
-      
-      // Posts del usuario
-      const userPostsContainer = document.createElement('div');
-      userPostsContainer.id = 'userPostsContainer';
-      postsEl.appendChild(userPostsContainer);
-      
-      loadUserPosts(username);
+      // Obtener seguidores
+      const followersRef = ref(db, `followers/${username}`);
+      onValue(followersRef, (followSnap) => {
+        const followers = followSnap.val() || {};
+        const followerCount = Object.keys(followers).length;
+        
+        // Obtener siguiendo
+        const followingRef = ref(db, `following/${username}`);
+        onValue(followingRef, (followingSnap) => {
+          const following = followingSnap.val() || {};
+          const followingCount = Object.keys(following).length;
+          
+          const followBtn = !isOwnProfile ? `
+            <button id="followBtn" style="margin-top:12px;padding:10px 24px;border:none;border-radius:12px;background:${isFollowing ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};color:#fff;cursor:pointer;font-weight:600;">
+              ${isFollowing ? 'Dejar de seguir' : 'Seguir'}
+            </button>
+          ` : '';
+          
+          profileHeader.innerHTML = `
+            <div class="user-profile-banner" style="background-image:url('${banner}');background-size:cover;background-position:center;"></div>
+            <div class="user-profile-info">
+              <img src="${avatar}" class="user-profile-avatar" />
+              <div class="user-profile-name">${username}</div>
+              <div class="user-profile-stats">
+                <div><strong>${postCount}</strong> Posts</div>
+                <div><strong>${followerCount}</strong> Seguidores</div>
+                <div><strong>${followingCount}</strong> Siguiendo</div>
+              </div>
+              ${followBtn}
+            </div>
+          `;
+          
+          postsEl.appendChild(profileHeader);
+          
+          // Configurar botón de seguir
+          if (!isOwnProfile) {
+            document.getElementById('followBtn').onclick = () => toggleFollow(username);
+          }
+          
+          // Botón para compartir perfil
+          const shareProfileBtn = document.createElement('button');
+          shareProfileBtn.textContent = '🔗 Compartir perfil';
+          shareProfileBtn.style.cssText = 'margin:10px 0 20px 0;padding:10px 20px;border:none;border-radius:12px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;cursor:pointer;font-weight:600;';
+          shareProfileBtn.onclick = () => {
+            const url = location.origin + location.pathname + `?user=${username}`;
+            navigator.clipboard.writeText(url);
+            alert('¡Link del perfil copiado!');
+          };
+          postsEl.appendChild(shareProfileBtn);
+          
+          // Título de posts
+          const postsTitle = document.createElement('h3');
+          postsTitle.textContent = 'Posts';
+          postsTitle.style.cssText = 'margin:20px 0 16px 0;font-size:20px;';
+          postsEl.appendChild(postsTitle);
+          
+          // Posts del usuario
+          const userPostsContainer = document.createElement('div');
+          userPostsContainer.id = 'userPostsContainer';
+          postsEl.appendChild(userPostsContainer);
+          
+          loadUserPosts(username);
+        }, { onlyOnce: true });
+      }, { onlyOnce: true });
     }, { onlyOnce: true });
   }, { onlyOnce: true });
+}
+
+function isUserFollowing(username) {
+  const following = JSON.parse(localStorage.getItem('twivo_following') || '{}');
+  return following[username] === true;
+}
+
+function toggleFollow(username) {
+  const following = JSON.parse(localStorage.getItem('twivo_following') || '{}');
+  const isFollowing = following[username] === true;
+  
+  if (isFollowing) {
+    // Dejar de seguir
+    delete following[username];
+    
+    // Eliminar de Firebase
+    const followerRef = ref(db, `followers/${username}/${currentUser.username}`);
+    set(followerRef, null);
+    
+    const followingRef = ref(db, `following/${currentUser.username}/${username}`);
+    set(followingRef, null);
+  } else {
+    // Seguir
+    following[username] = true;
+    
+    // Agregar a Firebase
+    const followerRef = ref(db, `followers/${username}/${currentUser.username}`);
+    set(followerRef, {
+      username: currentUser.username,
+      avatar: currentUser.avatar,
+      timestamp: Date.now()
+    });
+    
+    const followingRef = ref(db, `following/${currentUser.username}/${username}`);
+    set(followingRef, {
+      username: username,
+      timestamp: Date.now()
+    });
+  }
+  
+  localStorage.setItem('twivo_following', JSON.stringify(following));
+  
+  // Recargar el perfil para actualizar el botón
+  viewUserProfile(username);
 }
 
 function loadUserPosts(username) {
@@ -1048,7 +1170,7 @@ function loadUserPosts(username) {
       return b[1].timestamp - a[1].timestamp;
     });
     
-    arr.forEach(([k, p]) => container.appendChild(renderPost(k, p)));
+    arr.forEach(([k, p]) => container.appendChild(renderPost(k, p, false, true)));
   });
 }
 
