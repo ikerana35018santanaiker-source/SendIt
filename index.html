@@ -68,7 +68,7 @@ const firebaseConfig={apiKey:"AIzaSyATTtOEPHOi3lBiM9CcgzkCN-MSK50RjY4",authDomai
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-let currentUser=localStorage.getItem('xchat_user')||null;
+let currentUser = JSON.parse(localStorage.getItem('xchat_user') || 'null');
 const authBox=document.getElementById('authBox');
 const mainUI=document.getElementById('mainUI');
 const leftbar=document.getElementById('leftbar');
@@ -77,28 +77,40 @@ let currentListener=null;
 
 if(currentUser){showMain();}
 
-document.getElementById('loginBtn').onclick=()=>{
-  const u=user.value.trim();
-  if(!u)return alert('Escribe un nombre.');
-  currentUser=u;localStorage.setItem('xchat_user',u);
+document.getElementById('loginBtn').onclick = () => {
+  const u = user.value.trim();
+  if (!u) return alert('Escribe un nombre.');
+  currentUser = { username: u, avatar: `https://api.dicebear.com/7.x/thumbs/svg?seed=${u}` };
+  localStorage.setItem('xchat_user', JSON.stringify(currentUser));
   showMain();
+};();
 };
 
 function showMain(){authBox.style.display='none';mainUI.style.display='block';leftbar.style.display='flex';loadSection('descubre');}
 
-send.onclick=()=>{
-  const txt=text.value.trim();
-  if(!txt)return;
-  const t=Date.now();
-  db.ref('xposts').push({user:currentUser,text:txt,timestamp:t,likes:0});
-  text.value='';
+send.onclick = () => {
+  const txt = text.value.trim();
+  if (!txt) return;
+  const t = Date.now();
+  db.ref('xposts').push({
+    user: currentUser.username,
+    avatar: currentUser.avatar,
+    text: txt,
+    timestamp: t,
+    likes: 0
+  });
+  text.value = '';
+  text.disabled = false;
+  send.disabled = false;
 };
 
-function renderPost(key,p){
-  const div=document.createElement('div');div.className='post';
-  div.innerHTML=`
+function renderPost(key, p) {
+  const div = document.createElement('div');
+  div.className = 'post';
+  const avatar = p.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${p.user}`;
+  div.innerHTML = `
     <div class="meta">
-      <img class="profileIcon" src="https://api.dicebear.com/7.x/thumbs/svg?seed=${p.user}" />
+      <img class="profileIcon" src="${avatar}" />
       <div>
         <div class="username">${p.user}</div>
         <div style="font-size:12px;color:#777;">${new Date(p.timestamp).toLocaleString()}</div>
@@ -106,10 +118,11 @@ function renderPost(key,p){
     </div>
     <div>${escapeHtml(p.text)}</div>
     <div class="actions">
-      <span onclick="likePost('${key}')">❤️ ${p.likes||0}</span>
+      <span onclick="likePost('${key}')">❤️ ${p.likes || 0}</span>
       <span onclick="sharePost('${key}')">🔗 Compartir</span>
     </div>`;
   return div;
+}
 }
 
 function escapeHtml(s){return s.replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));}
@@ -124,7 +137,23 @@ function loadSection(sec){
   postsEl.innerHTML='';
   if(currentListener){currentListener.off();}
 
-  if(sec==='perfil'){postsEl.innerHTML=`<button onclick="logout()">Cerrar sesión</button>`;return;}
+  if(sec==='perfil'){
+    const u = currentUser;
+    postsEl.innerHTML = `
+      <div style="padding:20px;background:#fff;border-radius:12px;border:1px solid #e5e7eb;max-width:400px;margin:auto;">
+        <h2 style='margin-bottom:10px;'>Editar perfil</h2>
+
+        <label>Nombre:</label>
+        <input id="editName" value="${u.username}" style="width:100%;padding:8px;margin:6px 0;border-radius:8px;border:1px solid #ccc" />
+
+        <label>Avatar URL:</label>
+        <input id="editAvatar" value="${u.avatar}" style="width:100%;padding:8px;margin:6px 0;border-radius:8px;border:1px solid #ccc" />
+
+        <button onclick="saveProfile()" style="margin-top:10px;width:100%;padding:10px;border:none;border-radius:8px;background:#3b82f6;color:#fff;cursor:pointer;">Guardar cambios</button>
+        <button onclick="logout()" style="margin-top:10px;width:100%;padding:10px;border:none;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer;">Cerrar sesión</button>
+      </div>`;
+    return;
+  }}
 
   let ref=db.ref('xposts').limitToLast(100);
 
@@ -137,6 +166,16 @@ function loadSection(sec){
     else arr.sort((a,b)=>b[1].timestamp-a[1].timestamp);
     arr.forEach(([k,p])=>postsEl.appendChild(renderPost(k,p)));
   });
+}
+
+function saveProfile(){
+  const name = document.getElementById('editName').value.trim();
+  const avatar = document.getElementById('editAvatar').value.trim();
+  if(!name) return alert('Nombre inválido');
+  currentUser = { username: name, avatar: avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${name}` };
+  localStorage.setItem('xchat_user', JSON.stringify(currentUser));
+  alert('Perfil actualizado');
+  loadSection('perfil');
 }
 
 function logout(){localStorage.removeItem('xchat_user');location.reload();}
