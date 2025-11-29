@@ -456,44 +456,47 @@
     mainUI.style.display = 'block';
     leftbar.style.display = 'flex';
     loadSection('descubre');
-  }
-
-  document.getElementById('send').onclick = async () => {
-    const textArea = document.getElementById('text');
+    
+    // Configurar el botón de enviar después de mostrar la UI
     const sendBtn = document.getElementById('send');
-    const txt = textArea.value.trim();
+    const textArea = document.getElementById('text');
     
-    if (!txt) return;
-    
-    // Deshabilitar mientras se envía
-    textArea.disabled = true;
-    sendBtn.disabled = true;
-    sendBtn.textContent = 'Enviando...';
-    
-    try {
-      const t = Date.now();
-      const postsRef = ref(db, 'xposts');
-      const newPostRef = push(postsRef);
-      await set(newPostRef, {
-        user: currentUser.username,
-        avatar: currentUser.avatar,
-        text: txt,
-        timestamp: t,
-        likes: 0
-      });
+    sendBtn.onclick = async () => {
+      const txt = textArea.value.trim();
       
-      // Limpiar y rehabilitar
-      textArea.value = '';
-    } catch (error) {
-      console.error('Error al enviar:', error);
-      alert('Error al enviar el mensaje. Intenta de nuevo.');
-    } finally {
-      // Siempre rehabilitar
-      textArea.disabled = false;
-      sendBtn.disabled = false;
-      sendBtn.textContent = 'Enviar';
-    }
-  };
+      if (!txt) return;
+      
+      // Deshabilitar mientras se envía
+      textArea.disabled = true;
+      sendBtn.disabled = true;
+      const originalText = sendBtn.textContent;
+      sendBtn.textContent = 'Enviando...';
+      
+      try {
+        const t = Date.now();
+        const postsRef = ref(db, 'xposts');
+        const newPostRef = push(postsRef);
+        await set(newPostRef, {
+          user: currentUser.username,
+          avatar: currentUser.avatar,
+          text: txt,
+          timestamp: t,
+          likes: 0
+        });
+        
+        // Limpiar
+        textArea.value = '';
+      } catch (error) {
+        console.error('Error al enviar:', error);
+        alert('Error al enviar el mensaje. Intenta de nuevo.');
+      } finally {
+        // Siempre rehabilitar
+        textArea.disabled = false;
+        sendBtn.disabled = false;
+        sendBtn.textContent = originalText;
+      }
+    };
+  }
 
   function renderPost(key, p) {
     const div = document.createElement('div');
