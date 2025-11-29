@@ -458,20 +458,41 @@
     loadSection('descubre');
   }
 
-  document.getElementById('send').onclick = () => {
-    const txt = document.getElementById('text').value.trim();
+  document.getElementById('send').onclick = async () => {
+    const textArea = document.getElementById('text');
+    const sendBtn = document.getElementById('send');
+    const txt = textArea.value.trim();
+    
     if (!txt) return;
-    const t = Date.now();
-    const postsRef = ref(db, 'xposts');
-    const newPostRef = push(postsRef);
-    set(newPostRef, {
-      user: currentUser.username,
-      avatar: currentUser.avatar,
-      text: txt,
-      timestamp: t,
-      likes: 0
-    });
-    document.getElementById('text').value = '';
+    
+    // Deshabilitar mientras se envía
+    textArea.disabled = true;
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Enviando...';
+    
+    try {
+      const t = Date.now();
+      const postsRef = ref(db, 'xposts');
+      const newPostRef = push(postsRef);
+      await set(newPostRef, {
+        user: currentUser.username,
+        avatar: currentUser.avatar,
+        text: txt,
+        timestamp: t,
+        likes: 0
+      });
+      
+      // Limpiar y rehabilitar
+      textArea.value = '';
+    } catch (error) {
+      console.error('Error al enviar:', error);
+      alert('Error al enviar el mensaje. Intenta de nuevo.');
+    } finally {
+      // Siempre rehabilitar
+      textArea.disabled = false;
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Enviar';
+    }
   };
 
   function renderPost(key, p) {
