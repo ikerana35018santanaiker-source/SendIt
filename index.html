@@ -78,11 +78,19 @@ let currentListener=null;
 if(currentUser){showMain();}
 
 document.getElementById('loginBtn').onclick = () => {
-  const u = user.value.trim();
-  if (!u) return alert('Escribe un nombre.');
-  currentUser = { username: u, avatar: `https://api.dicebear.com/7.x/thumbs/svg?seed=${u}` };
+  const uname = document.getElementById('user').value.trim();
+  if (!uname) return alert('Escribe un nombre.');
+
+  currentUser = {
+    username: uname,
+    avatar: `https://api.dicebear.com/7.x/thumbs/svg?seed=${uname}`
+  };
+
   localStorage.setItem('xchat_user', JSON.stringify(currentUser));
-  showMain();
+
+  // seguridad extra: recargar para evitar estados corruptos
+  location.reload();
+};();
 };();
 };
 
