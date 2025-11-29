@@ -389,6 +389,65 @@
     transform:translateY(-2px);
     box-shadow:0 6px 20px rgba(252, 92, 125, 0.4);
   }
+
+  /* USER PROFILE VIEW */
+  .user-profile-header {
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:20px;
+    border:1px solid rgba(255,255,255,0.3);
+    box-shadow:0 8px 32px rgba(0,0,0,0.08);
+    margin-bottom:20px;
+    overflow:hidden;
+    animation:fadeInUp 0.6s ease-out;
+  }
+
+  .user-profile-banner {
+    height:150px;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position:relative;
+  }
+
+  .user-profile-info {
+    padding:20px;
+    position:relative;
+    margin-top:-40px;
+  }
+
+  .user-profile-avatar {
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    border:4px solid #fff;
+    box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    margin-bottom:12px;
+  }
+
+  .user-profile-name {
+    font-size:24px;
+    font-weight:700;
+    color:#1a202c;
+    margin-bottom:8px;
+  }
+
+  .user-profile-stats {
+    display:flex;
+    gap:20px;
+    margin-top:16px;
+    font-size:14px;
+    color:#718096;
+  }
+
+  .pinned-badge {
+    background:linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color:#1a202c;
+    padding:4px 12px;
+    border-radius:12px;
+    font-size:12px;
+    font-weight:600;
+    margin-bottom:8px;
+    display:inline-block;
+  }
 </style>
 </head>
 <body>
@@ -441,11 +500,17 @@ let currentListener = null;
 
 if (currentUser) showMain();
 
-// Verificar si hay un post en la URL
+// Verificar si hay un post o usuario en la URL
 const urlParams = new URLSearchParams(window.location.search);
 const postParam = urlParams.get('post');
-if (postParam && currentUser) {
-  setTimeout(() => viewPostDetail(postParam), 500);
+const userParam = urlParams.get('user');
+
+if (currentUser) {
+  if (postParam) {
+    setTimeout(() => viewPostDetail(postParam), 500);
+  } else if (userParam) {
+    setTimeout(() => viewUserProfile(userParam), 500);
+  }
 }
 
 document.getElementById('loginBtn').onclick = () => {
@@ -510,12 +575,16 @@ function renderPost(key, p, isDetail = false) {
   
   const isOwner = currentUser.username === p.user;
   const deleteBtn = isOwner ? `<span data-action="delete" data-key="${key}" style="color:#ef4444;">🗑️ Eliminar</span>` : '';
+  const pinBtn = isOwner && !isDetail ? `<span data-action="pin" data-key="${key}" style="color:#fbbf24;">📌 ${p.pinned ? 'Desfijar' : 'Fijar'}</span>` : '';
+  
+  const pinnedBadge = p.pinned ? '<div class="pinned-badge">📌 Post Fijado</div>' : '';
   
   div.innerHTML = `
+    ${pinnedBadge}
     <div class="meta">
-      <img class="profileIcon" src="${avatar}" />
+      <img class="profileIcon" src="${avatar}" data-user="${p.user}" style="cursor:pointer;" />
       <div>
-        <div class="username">${p.user}</div>
+        <div class="username" data-user="${p.user}" style="cursor:pointer;">${p.user}</div>
         <div style="font-size:12px;color:#999;">${new Date(p.timestamp).toLocaleString()}</div>
       </div>
     </div>
@@ -524,6 +593,7 @@ function renderPost(key, p, isDetail = false) {
       <span data-action="like" data-key="${key}">❤️ ${p.likes || 0}</span>
       <span data-action="comments" data-key="${key}">💬 ${p.commentsCount || 0}</span>
       <span data-action="share" data-key="${key}">🔗 Compartir</span>
+      ${pinBtn}
       ${deleteBtn}
     </div>`;
  
@@ -531,12 +601,24 @@ function renderPost(key, p, isDetail = false) {
   div.querySelector('[data-action="share"]').onclick = () => sharePost(key);
   div.querySelector('[data-action="comments"]').onclick = () => viewPostDetail(key);
   
+  // Click en username o avatar para ver perfil
+  div.querySelectorAll('[data-user]').forEach(el => {
+    el.onclick = (e) => {
+      e.stopPropagation();
+      viewUserProfile(p.user);
+    };
+  });
+  
   if (!isDetail) {
     const content = div.querySelector('.post-content');
     content.onclick = () => viewPostDetail(key);
   }
   
-  if (isOwner) {
+  if (isOwner && pinBtn) {
+    div.querySelector('[data-action="pin"]').onclick = () => togglePin(key, p.pinned);
+  }
+  
+  if (isOwner && deleteBtn) {
     div.querySelector('[data-action="delete"]').onclick = () => deletePost(key);
   }
 
@@ -755,11 +837,13 @@ function loadSection(sec) {
     const u = currentUser;
     postsEl.innerHTML = `
       <div class="profile-container">
-        <h2>Editar perfil</h2>
-        <label>Nombre:</label>
+        <h2>Editar mi perfil</h2>
+        <label>Nombre de usuario:</label>
         <input id="editName" value="${u.username}" />
         <label>Avatar URL:</label>
-        <input id="editAvatar" value="${u.avatar}" />
+        <input id="editAvatar" value="${u.avatar || ''}" placeholder="https://..." />
+        <label>Banner URL:</label>
+        <input id="editBanner" value="${u.banner || ''}" placeholder="https://..." />
         <button id="saveProfileBtn">Guardar cambios</button>
         <button id="logoutBtn">Cerrar sesión</button>
       </div>`;
@@ -779,8 +863,16 @@ function loadSection(sec) {
       arr.push([ch.key, ch.val()]);
     });
 
+    // Ordenar por fecha
     if(sec==='popular') arr.sort((a,b)=>(b[1].likes||0)-(a[1].likes||0));
-    else arr.sort((a,b)=>b[1].timestamp-a[1].timestamp);
+    else {
+      // Ordenar: primero fijados, luego por fecha
+      arr.sort((a, b) => {
+        if (a[1].pinned && !b[1].pinned) return -1;
+        if (!a[1].pinned && b[1].pinned) return 1;
+        return b[1].timestamp - a[1].timestamp;
+      });
+    }
 
     arr.forEach(([k,p])=>postsEl.appendChild(renderPost(k,p)));
   });
@@ -789,12 +881,175 @@ function loadSection(sec) {
 function saveProfile() {
   const name = document.getElementById('editName').value.trim();
   const avatar = document.getElementById('editAvatar').value.trim();
+  const banner = document.getElementById('editBanner').value.trim();
+  
   if(!name) return alert('Nombre inválido');
 
-  currentUser={username:name,avatar:avatar||`https://api.dicebear.com/7.x/thumbs/svg?seed=${name}`};
-  localStorage.setItem('xchat_user',JSON.stringify(currentUser));
-  alert('Perfil actualizado');
+  const oldUsername = currentUser.username;
+  const newAvatar = avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${name}`;
+  const newBanner = banner || `https://api.dicebear.com/7.x/shapes/svg?seed=${name}`;
+
+  currentUser = {
+    username: name,
+    avatar: newAvatar,
+    banner: newBanner
+  };
+  
+  localStorage.setItem('xchat_user', JSON.stringify(currentUser));
+  
+  // Actualizar perfil en Firebase
+  const userProfileRef = ref(db, `userProfiles/${name}`);
+  set(userProfileRef, {
+    username: name,
+    avatar: newAvatar,
+    banner: newBanner,
+    updatedAt: Date.now()
+  });
+  
+  // Actualizar todos los posts del usuario
+  const postsRef = ref(db, 'xposts');
+  onValue(postsRef, (snap) => {
+    snap.forEach((childSnap) => {
+      const post = childSnap.val();
+      if (post.user === oldUsername) {
+        const postRef = ref(db, `xposts/${childSnap.key}`);
+        runTransaction(postRef, (p) => {
+          if (p) {
+            p.user = name;
+            p.avatar = newAvatar;
+          }
+          return p;
+        });
+      }
+    });
+  }, { onlyOnce: true });
+  
+  alert('Perfil actualizado. Los cambios se aplicarán en breve.');
   loadSection('perfil');
+}
+
+function togglePin(postId, currentPinned) {
+  const postRef = ref(db, 'xposts/' + postId);
+  
+  runTransaction(postRef, (p) => {
+    if (p) {
+      p.pinned = !currentPinned;
+    }
+    return p;
+  }).then(() => {
+    alert(currentPinned ? 'Post desfijado' : 'Post fijado');
+  });
+}
+
+function viewUserProfile(username) {
+  if (currentListener) {
+    currentListener();
+    currentListener = null;
+  }
+  
+  postsEl.innerHTML = '<div style="text-align:center;padding:20px;">Cargando perfil...</div>';
+  
+  // Obtener info del perfil
+  const userProfileRef = ref(db, `userProfiles/${username}`);
+  onValue(userProfileRef, (snap) => {
+    const profile = snap.val();
+    
+    const avatar = profile?.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${username}`;
+    const banner = profile?.banner || `https://api.dicebear.com/7.x/shapes/svg?seed=${username}`;
+    
+    postsEl.innerHTML = '';
+    
+    // Botón de volver
+    const backBtn = document.createElement('button');
+    backBtn.textContent = '← Volver';
+    backBtn.style.cssText = 'margin-bottom:20px;padding:10px 20px;border:none;border-radius:12px;background:rgba(255,255,255,0.95);cursor:pointer;font-weight:600;';
+    backBtn.onclick = () => loadSection('descubre');
+    postsEl.appendChild(backBtn);
+    
+    // Header del perfil
+    const profileHeader = document.createElement('div');
+    profileHeader.className = 'user-profile-header';
+    
+    // Contar posts del usuario
+    const postsRef = ref(db, 'xposts');
+    onValue(postsRef, (postsSnap) => {
+      let postCount = 0;
+      postsSnap.forEach((childSnap) => {
+        if (childSnap.val().user === username) postCount++;
+      });
+      
+      profileHeader.innerHTML = `
+        <div class="user-profile-banner" style="background-image:url('${banner}');background-size:cover;background-position:center;"></div>
+        <div class="user-profile-info">
+          <img src="${avatar}" class="user-profile-avatar" />
+          <div class="user-profile-name">${username}</div>
+          <div class="user-profile-stats">
+            <div><strong>${postCount}</strong> Posts</div>
+          </div>
+        </div>
+      `;
+      
+      postsEl.appendChild(profileHeader);
+      
+      // Botón para compartir perfil
+      const shareProfileBtn = document.createElement('button');
+      shareProfileBtn.textContent = '🔗 Compartir perfil';
+      shareProfileBtn.style.cssText = 'margin:10px 0 20px 0;padding:10px 20px;border:none;border-radius:12px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;cursor:pointer;font-weight:600;';
+      shareProfileBtn.onclick = () => {
+        const url = location.origin + location.pathname + `?user=${username}`;
+        navigator.clipboard.writeText(url);
+        alert('¡Link del perfil copiado!');
+      };
+      postsEl.appendChild(shareProfileBtn);
+      
+      // Título de posts
+      const postsTitle = document.createElement('h3');
+      postsTitle.textContent = 'Posts';
+      postsTitle.style.cssText = 'margin:20px 0 16px 0;font-size:20px;';
+      postsEl.appendChild(postsTitle);
+      
+      // Posts del usuario
+      const userPostsContainer = document.createElement('div');
+      userPostsContainer.id = 'userPostsContainer';
+      postsEl.appendChild(userPostsContainer);
+      
+      loadUserPosts(username);
+    }, { onlyOnce: true });
+  }, { onlyOnce: true });
+}
+
+function loadUserPosts(username) {
+  const postsRef = ref(db, 'xposts');
+  const postsQuery = query(postsRef, limitToLast(100));
+  
+  onValue(postsQuery, (snap) => {
+    const container = document.getElementById('userPostsContainer');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    const arr = [];
+    
+    snap.forEach(ch => {
+      const post = ch.val();
+      if (post.user === username) {
+        arr.push([ch.key, post]);
+      }
+    });
+    
+    if (arr.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">Este usuario no ha publicado nada aún.</div>';
+      return;
+    }
+    
+    // Ordenar: primero fijados, luego por fecha
+    arr.sort((a, b) => {
+      if (a[1].pinned && !b[1].pinned) return -1;
+      if (!a[1].pinned && b[1].pinned) return 1;
+      return b[1].timestamp - a[1].timestamp;
+    });
+    
+    arr.forEach(([k, p]) => container.appendChild(renderPost(k, p)));
+  });
 }
 
 function logout() {
