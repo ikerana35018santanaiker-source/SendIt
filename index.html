@@ -499,6 +499,18 @@ const leftbar = document.getElementById('leftbar');
 const postsEl = document.getElementById('posts');
 let currentListener = null;
 
+// Generar o recuperar ID único del usuario
+function getUserId() {
+  let userId = localStorage.getItem('twivo_user_id');
+  if (!userId) {
+    userId = 'uid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('twivo_user_id', userId);
+  }
+  return userId;
+}
+
+const currentUserId = getUserId();
+
 if (currentUser) showMain();
 
 // Verificar si hay un post o usuario en la URL
@@ -520,10 +532,19 @@ document.getElementById('loginBtn').onclick = () => {
 
   currentUser = {
     username: uname,
-    avatar: `https://api.dicebear.com/7.x/thumbs/svg?seed=${uname}`
+    avatar: `https://api.dicebear.com/7.x/thumbs/svg?seed=${uname}`,
+    userId: currentUserId
   };
 
   localStorage.setItem('xchat_user', JSON.stringify(currentUser));
+  
+  // Guardar userId en Firebase asociado al username
+  const userRef = ref(db, `users/${currentUserId}`);
+  set(userRef, {
+    username: uname,
+    createdAt: Date.now()
+  });
+
   location.reload();
 };
 
@@ -549,6 +570,7 @@ function showMain() {
       const newPostRef = push(ref(db, 'xposts'));
       await set(newPostRef, {
         user: currentUser.username,
+        userId: currentUserId,
         avatar: currentUser.avatar,
         text: txt,
         timestamp: t,
@@ -574,7 +596,9 @@ function renderPost(key, p, isDetail = false, showPinned = false) {
   div.className = 'post';
   const avatar = p.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${p.user}`;
   
-  const isOwner = currentUser.username === p.user;
+  // Verificar si es el dueño usando el userId
+  const isOwner = p.userId && p.userId === currentUserId;
+  
   const deleteBtn = isOwner ? `<span data-action="delete" data-key="${key}" style="color:#ef4444;">🗑️ Eliminar</span>` : '';
   const pinBtn = isOwner && showPinned && !isDetail ? `<span data-action="pin" data-key="${key}" style="color:#fbbf24;">📌 ${p.pinned ? 'Desfijar' : 'Fijar'}</span>` : '';
   
