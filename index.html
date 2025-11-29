@@ -294,6 +294,11 @@
   .actions span:hover {
     background:rgba(102, 126, 234, 0.1);
     color:#667eea;
+    transform:scale(1.05);
+  }
+
+  .post-content:hover {
+    color:#667eea;
   }
 
   /* MOBILE */
@@ -436,6 +441,13 @@ let currentListener = null;
 
 if (currentUser) showMain();
 
+// Verificar si hay un post en la URL
+const urlParams = new URLSearchParams(window.location.search);
+const postParam = urlParams.get('post');
+if (postParam && currentUser) {
+  setTimeout(() => viewPostDetail(postParam), 500);
+}
+
 document.getElementById('loginBtn').onclick = () => {
   const uname = document.getElementById('user').value.trim();
   if (!uname) return alert('Escribe un nombre.');
@@ -491,10 +503,14 @@ function showMain() {
   loadSection('descubre');
 }
 
-function renderPost(key, p) {
+function renderPost(key, p, isDetail = false) {
   const div = document.createElement('div');
   div.className = 'post';
   const avatar = p.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${p.user}`;
+  
+  const isOwner = currentUser.username === p.user;
+  const deleteBtn = isOwner ? `<span data-action="delete" data-key="${key}" style="color:#ef4444;">🗑️ Eliminar</span>` : '';
+  
   div.innerHTML = `
     <div class="meta">
       <img class="profileIcon" src="${avatar}" />
@@ -503,14 +519,26 @@ function renderPost(key, p) {
         <div style="font-size:12px;color:#999;">${new Date(p.timestamp).toLocaleString()}</div>
       </div>
     </div>
-    <div>${escapeHtml(p.text)}</div>
+    <div class="post-content" ${!isDetail ? `data-key="${key}" style="cursor:pointer;"` : ''}>${escapeHtml(p.text)}</div>
     <div class="actions">
       <span data-action="like" data-key="${key}">❤️ ${p.likes || 0}</span>
+      <span data-action="comments" data-key="${key}">💬 ${p.commentsCount || 0}</span>
       <span data-action="share" data-key="${key}">🔗 Compartir</span>
+      ${deleteBtn}
     </div>`;
  
   div.querySelector('[data-action="like"]').onclick = () => likePost(key);
   div.querySelector('[data-action="share"]').onclick = () => sharePost(key);
+  div.querySelector('[data-action="comments"]').onclick = () => viewPostDetail(key);
+  
+  if (!isDetail) {
+    const content = div.querySelector('.post-content');
+    content.onclick = () => viewPostDetail(key);
+  }
+  
+  if (isOwner) {
+    div.querySelector('[data-action="delete"]').onclick = () => deletePost(key);
+  }
 
   return div;
 }
@@ -532,9 +560,184 @@ function likePost(id) {
 }
 
 function sharePost(id) {
-  navigator.clipboard.writeText(location.origin + `/?post=${id}`);
-  alert('Link copiado');
+  const url = location.origin + location.pathname + `?post=${id}`;
+  navigator.clipboard.writeText(url);
+  alert('¡Link copiado al portapapeles!');
 }
+
+function deletePost(id) {
+  if (!confirm('¿Seguro que quieres eliminar este post?')) return;
+  
+  const postRef = ref(db, 'xposts/' + id);
+  set(postRef, null).then(() => {
+    alert('Post eliminado');
+  }).catch(e => {
+    console.error('Error al eliminar:', e);
+    alert('Error al eliminar el post');
+  });
+}
+
+function viewPostDetail(postId) {
+  if (currentListener) {
+    currentListener();
+    currentListener = null;
+  }
+  
+  postsEl.innerHTML = '<div style="text-align:center;padding:20px;">Cargando...</div>';
+  
+  const postRef = ref(db, 'xposts/' + postId);
+  
+  onValue(postRef, (snap) => {
+    const post = snap.val();
+    
+    if (!post) {
+      postsEl.innerHTML = '<div style="text-align:center;padding:20px;">Post no encontrado</div>';
+      return;
+    }
+    
+    postsEl.innerHTML = '';
+    
+    // Botón de volver
+    const backBtn = document.createElement('button');
+    backBtn.textContent = '← Volver';
+    backBtn.style.cssText = 'margin-bottom:20px;padding:10px 20px;border:none;border-radius:12px;background:rgba(255,255,255,0.95);cursor:pointer;font-weight:600;';
+    backBtn.onclick = () => loadSection('descubre');
+    postsEl.appendChild(backBtn);
+    
+    // Post principal
+    postsEl.appendChild(renderPost(postId, post, true));
+    
+    // Composer para comentarios
+    const commentComposer = document.createElement('div');
+    commentComposer.style.cssText = 'display:flex;gap:12px;margin:20px 0;padding:20px;background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,0.08);';
+    commentComposer.innerHTML = `
+      <textarea id="commentText" placeholder="Escribe un comentario..." style="flex:1;min-height:60px;border-radius:14px;padding:14px;border:2px solid #e2e8f0;resize:none;font-size:15px;font-family:inherit;background:#fff;"></textarea>
+      <button id="sendComment" style="padding:12px 24px;border:none;border-radius:14px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;cursor:pointer;font-weight:600;font-size:15px;height:fit-content;align-self:flex-end;">Comentar</button>
+    `;
+    postsEl.appendChild(commentComposer);
+    
+    document.getElementById('sendComment').onclick = () => addComment(postId);
+    
+    // Título de comentarios
+    const commentsTitle = document.createElement('h3');
+    commentsTitle.textContent = 'Comentarios';
+    commentsTitle.style.cssText = 'margin:20px 0 10px 0;font-size:18px;';
+    postsEl.appendChild(commentsTitle);
+    
+    // Lista de comentarios
+    const commentsContainer = document.createElement('div');
+    commentsContainer.id = 'commentsContainer';
+    postsEl.appendChild(commentsContainer);
+    
+    loadComments(postId);
+  }, { onlyOnce: true });
+}
+
+function addComment(postId) {
+  const commentText = document.getElementById('commentText');
+  const sendBtn = document.getElementById('sendComment');
+  const txt = commentText.value.trim();
+  
+  if (!txt) return;
+  
+  commentText.disabled = true;
+  sendBtn.disabled = true;
+  sendBtn.textContent = 'Enviando...';
+  
+  const t = Date.now();
+  const commentsRef = ref(db, `comments/${postId}`);
+  const newCommentRef = push(commentsRef);
+  
+  set(newCommentRef, {
+    user: currentUser.username,
+    avatar: currentUser.avatar,
+    text: txt,
+    timestamp: t
+  }).then(() => {
+    // Actualizar contador de comentarios
+    const postRef = ref(db, 'xposts/' + postId);
+    runTransaction(postRef, (p) => {
+      if (p) {
+        p.commentsCount = (p.commentsCount || 0) + 1;
+      }
+      return p;
+    });
+    
+    commentText.value = '';
+    commentText.disabled = false;
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Comentar';
+    commentText.focus();
+  }).catch(e => {
+    console.error('Error:', e);
+    alert('Error al comentar');
+    commentText.disabled = false;
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Comentar';
+  });
+}
+
+function loadComments(postId) {
+  const commentsRef = ref(db, `comments/${postId}`);
+  const commentsQuery = query(commentsRef, limitToLast(100));
+  
+  onValue(commentsQuery, (snap) => {
+    const container = document.getElementById('commentsContainer');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    const arr = [];
+    
+    snap.forEach(ch => {
+      arr.push([ch.key, ch.val()]);
+    });
+    
+    arr.sort((a, b) => a[1].timestamp - b[1].timestamp);
+    
+    if (arr.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">No hay comentarios aún. ¡Sé el primero!</div>';
+      return;
+    }
+    
+    arr.forEach(([key, comment]) => {
+      const commentDiv = document.createElement('div');
+      commentDiv.className = 'post';
+      const avatar = comment.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${comment.user}`;
+      
+      const isOwner = currentUser.username === comment.user;
+      const deleteBtn = isOwner ? `<span onclick="deleteComment('${postId}', '${key}')" style="color:#ef4444;cursor:pointer;font-size:14px;margin-left:auto;">🗑️</span>` : '';
+      
+      commentDiv.innerHTML = `
+        <div class="meta">
+          <img class="profileIcon" src="${avatar}" style="width:36px;height:36px;" />
+          <div style="flex:1;">
+            <div class="username" style="font-size:14px;">${comment.user}</div>
+            <div style="font-size:11px;color:#999;">${new Date(comment.timestamp).toLocaleString()}</div>
+          </div>
+          ${deleteBtn}
+        </div>
+        <div style="font-size:14px;margin-top:8px;">${escapeHtml(comment.text)}</div>
+      `;
+      container.appendChild(commentDiv);
+    });
+  });
+}
+
+window.deleteComment = function(postId, commentId) {
+  if (!confirm('¿Eliminar este comentario?')) return;
+  
+  const commentRef = ref(db, `comments/${postId}/${commentId}`);
+  set(commentRef, null).then(() => {
+    // Actualizar contador
+    const postRef = ref(db, 'xposts/' + postId);
+    runTransaction(postRef, (p) => {
+      if (p && p.commentsCount > 0) {
+        p.commentsCount = p.commentsCount - 1;
+      }
+      return p;
+    });
+  });
+};
 
 leftbar.querySelectorAll('button').forEach(btn => {
   btn.onclick = () => loadSection(btn.dataset.sec);
