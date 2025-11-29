@@ -1,67 +1,134 @@
-<!-- XChat full rebuild will go here. Starting skeleton per user request. -->
 <!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>XChat</title>
+<title>XChat — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
-  /* Basic reset + layout */
-  body{margin:0;font-family:system-ui,Roboto,Arial;background:#f4f6fa;color:#111;display:flex;min-height:100vh}
-  #leftbar{width:70px;background:#fff;border-right:1px solid #e5e7eb;padding:12px;display:none;flex-direction:column;gap:20px;align-items:center}
-  #leftbar button{background:none;border:none;font-size:14px;cursor:pointer;color:#444}
-  #app{flex:1;display:flex;flex-direction:column;max-width:700px;margin:auto;padding:20px}
+  :root{
+    --bg:#0f1720; --card:#0b1220; --muted:#9aa4b2; --accent:#06b6d4; --glass: rgba(255,255,255,0.03);
+  }
+  /* respects system preference */
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f7f8fb; --card:#ffffff; --muted:#6b7280; --accent:#2563eb; --glass: rgba(0,0,0,0.04); color-scheme: light }
+    body{color:#0b1220}
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+  body{background:var(--bg);display:flex;align-items:stretch}
 
-  /* Auth UI */
-  #authBox{max-width:360px;margin:60px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,0.08)}
-  #authBox h2{text-align:center;margin-bottom:12px}
-  input{width:100%;padding:10px;margin:6px 0;border-radius:8px;border:1px solid #d1d5db}
-  #authBox button{width:100%;padding:10px;border:none;border-radius:8px;margin-top:10px;background:#3b82f6;color:#fff;font-size:16px;cursor:pointer}
+  /* app layout */
+  #appContainer{display:flex;width:100%;max-width:1200px;margin:auto;gap:18px;padding:28px;box-sizing:border-box}
 
-  /* Posts */
-  #composer{display:flex;gap:8px;margin-bottom:18px}
-  #composer textarea{flex:1;min-height:60px;border-radius:10px;padding:10px;border:1px solid #d1d5db;resize:none}
-  #composer button{padding:10px 18px;border:none;border-radius:8px;background:#3b82f6;color:#fff;cursor:pointer}
+  /* LEFTBAR */
+  #leftbar{width:92px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:12px;transition:width .28s ease, transform .18s;overflow:hidden}
+  #leftbar.expanded{width:220px}
+  .logo{height:44px;width:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#7c3aed);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px}
+  .navBtn{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .14s}
+  .navBtn:hover{background:var(--glass);color:var(--accent);transform:translateX(4px)}
+  .navBtn .label{font-weight:600}
 
-  .post{background:#fff;padding:14px;border-radius:12px;margin-bottom:12px;border:1px solid #e5e7eb}
-  .post .meta{display:flex;align-items:center;gap:10px;margin-bottom:6px}
-  .profileIcon{width:40px;height:40px;border-radius:50%;background:#d1d5db}
-  .username{font-weight:600}
-  .actions{display:flex;gap:16px;margin-top:10px;font-size:14px;color:#666}
-  .actions span{cursor:pointer}
+  /* main column */
+  #main{flex:1;min-width:360px}
+  #topBar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  #search{padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+
+  /* composer */
+  #composer{background:var(--card);padding:14px;border-radius:14px;box-shadow:0 6px 18px rgba(2,6,23,0.6);margin-bottom:14px}
+  #composerRow{display:flex;gap:12px}
+  .avatarSmall{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,var(--muted),#64748b);flex-shrink:0;border:2px solid rgba(255,255,255,0.03);object-fit:cover}
+  #postInput{flex:1;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit;min-height:68px}
+  #postBtn{background:linear-gradient(90deg,var(--accent),#7c3aed);border:none;padding:10px 14px;border-radius:10px;color:white;font-weight:700;cursor:pointer}
+
+  /* feed */
+  #feed{margin-top:8px}
+  .post{display:flex;gap:12px;padding:12px;border-radius:12px;background:var(--card);border:1px solid rgba(255,255,255,0.03);margin-bottom:12px;align-items:flex-start}
+  .post .avatar{width:56px;height:56px;border-radius:10px;object-fit:cover}
+  .post .body{flex:1}
+  .post .meta{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .username{font-weight:700}
+  .time{color:var(--muted);font-size:13px}
+  .text{margin-bottom:8px;font-size:15px}
+  .actions{display:flex;gap:12px;color:var(--muted);align-items:center}
+  .actions button{background:transparent;border:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:8px}
+  .actions button:hover{color:var(--accent);background:var(--glass)}
+
+  /* profile pane */
+  #profilePane{width:320px}
+  .card{background:var(--card);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+  .profileLarge{width:96px;height:96px;border-radius:16px;object-fit:cover;margin-bottom:10px}
+  .field{display:flex;flex-direction:column;margin-bottom:10px}
+  .field input{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+  .btn{padding:10px;border-radius:10px;border:none;background:var(--accent);color:white;cursor:pointer}
+
+  /* responsive */
+  @media (max-width:900px){#appContainer{padding:12px} #leftbar{display:none} #profilePane{display:none}}
 </style>
 </head>
 <body>
-<div id="leftbar">
-  <button data-sec="inicio">Inicio</button>
-  <button data-sec="descubre">Descubre</button>
-  <button data-sec="popular">Popular</button>
-  <button data-sec="perfil">Perfil</button>
-</div>
-
-<div id="app">
-  <div id="authBox">
-    <h2>XChat — Login</h2>
-    <input id="user" placeholder="Nombre de usuario" />
-    <button id="loginBtn">Entrar</button>
+<div id="appContainer">
+  <div id="leftbar" class="expanded">
+    <div class="logo">X</div>
+    <button class="navBtn" data-sec="inicio"><span class="label">Inicio</span></button>
+    <button class="navBtn" data-sec="descubre"><span class="label">Descubre</span></button>
+    <button class="navBtn" data-sec="popular"><span class="label">Popular</span></button>
+    <button class="navBtn" data-sec="perfil"><span class="label">Perfil</span></button>
   </div>
 
-  <div id="mainUI" style="display:none;">
-    <div id="composer">
-      <textarea id="text" placeholder="¿Qué estás pensando?"></textarea>
-      <button id="send">Enviar</button>
+  <div id="main">
+    <div id="topBar">
+      <div style="display:flex;gap:12px;align-items:center">
+        <input id="search" placeholder="Buscar..." />
+      </div>
+      <div id="userMini"></div>
     </div>
-    <div id="posts"></div>
+
+    <div id="authBox">
+      <div class="card" style="max-width:420px;margin:auto">
+        <h2 style="margin:4px 0 10px">XChat — Entrar</h2>
+        <div class="field"><label>Nombre</label><input id="loginName" placeholder="tu nombre público (ej: IkerPlays)" /></div>
+        <div class="field"><label>Avatar URL (opcional)</label><input id="loginAvatar" placeholder="https://... (imagen)" /></div>
+        <div style="display:flex;gap:8px"><button id="loginBtn" class="btn">Entrar</button><button id="guestBtn" class="btn" style="background:#374151">Entrar como invitado</button></div>
+      </div>
+    </div>
+
+    <div id="appUI" style="display:none">
+      <div id="composer">
+        <div id="composerRow">
+          <img id="myAvatar" class="avatarSmall" src="" alt="avatar" />
+          <textarea id="postInput" placeholder="¿Qué está pasando? (máx 280)" maxlength="280"></textarea>
+          <div style="display:flex;align-items:flex-end"><button id="postBtn">Publicar</button></div>
+        </div>
+      </div>
+
+      <div id="feed"></div>
+    </div>
+  </div>
+
+  <div id="profilePane">
+    <div class="card" style="margin-bottom:12px;text-align:center">
+      <img id="profileAvatar" class="profileLarge" src="" alt="avatar" />
+      <div id="profileName" style="font-weight:700;font-size:18px"></div>
+    </div>
+
+    <div class="card">
+      <h3>Editar perfil</h3>
+      <div class="field"><label>Nombre</label><input id="editName" /></div>
+      <div class="field"><label>Avatar URL</label><input id="editAvatar" /></div>
+      <div style="display:flex;gap:8px"><button id="saveProfile" class="btn">Guardar</button><button id="logout" class="btn" style="background:#ef4444">Cerrar sesión</button></div>
+    </div>
   </div>
 </div>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 <script>
-// Firebase config (user will fill)
+// Firebase config (already filled)
 const firebaseConfig = {
   apiKey: "AIzaSyATTtOEPHOi3lBiM9CcgzkCN-MSK50RjY4",
   authDomain: "retwitt-af48c.firebaseapp.com",
+  databaseURL: "https://retwitt-af48c-default-rtdb.firebaseio.com",
   projectId: "retwitt-af48c",
   storageBucket: "retwitt-af48c.firebasestorage.app",
   messagingSenderId: "1000651551704",
@@ -69,113 +136,249 @@ const firebaseConfig = {
   measurementId: "G-P5GWG9CEC1"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const database = firebase.database();
 
-// LOCALSTORAGE SESSION
-let currentUser = localStorage.getItem('xchat_user') || null;
-const authBox = document.getElementById('authBox');
-const mainUI = document.getElementById('mainUI');
-const leftbar = document.getElementById('leftbar');
+// Helpers
+const $ = sel => document.querySelector(sel);
+const qs = sel => document.querySelectorAll(sel);
 
-if(currentUser){ showMain(); }
+// Elements
+const authBox = $('#authBox');
+const appUI = $('#appUI');
+const loginBtn = $('#loginBtn');
+const guestBtn = $('#guestBtn');
+const loginName = $('#loginName');
+const loginAvatar = $('#loginAvatar');
+const myAvatar = $('#myAvatar');
+const postInput = $('#postInput');
+const postBtn = $('#postBtn');
+const feed = $('#feed');
+const leftbar = $('#leftbar');
+const userMini = $('#userMini');
+const profilePane = $('#profilePane');
+const profileAvatar = $('#profileAvatar');
+const profileName = $('#profileName');
+const editName = $('#editName');
+const editAvatar = $('#editAvatar');
+const saveProfile = $('#saveProfile');
+const logoutBtn = $('#logout');
 
-document.getElementById('loginBtn').onclick = ()=>{
-  const u = document.getElementById('user').value.trim();
-  if(!u) return alert('Escribe un nombre.');
-  currentUser = u;
-  localStorage.setItem('xchat_user', u);
-  showMain();
+// Session
+function getSession(){try{return JSON.parse(localStorage.getItem('xchat_user'))}catch(e){return null}}
+function setSession(obj){localStorage.setItem('xchat_user', JSON.stringify(obj))}
+function clearSession(){localStorage.removeItem('xchat_user')}
+
+let currentUser = getSession();
+
+// init UI
+function showLoggedIn(){
+  authBox.style.display='none';
+  appUI.style.display='block';
+  leftbar.style.display='flex';
+  profilePane.style.display='block';
+  updateUserUI();
+  startListeners();
+}
+function showLogin(){authBox.style.display='block'; appUI.style.display='none'; leftbar.style.display='none'; profilePane.style.display='none';}
+
+if(currentUser){ showLoggedIn(); } else { showLogin(); }
+
+// Login
+loginBtn.onclick = ()=>{
+  const name = loginName.value.trim();
+  if(!name) return alert('Escribe un nombre');
+  const avatar = loginAvatar.value.trim();
+  currentUser = { username: name, avatar: avatar || '', created: Date.now() };
+  setSession(currentUser);
+  showLoggedIn();
+};
+guestBtn.onclick = ()=>{
+  currentUser = { username: 'Guest_' + Math.floor(Math.random()*9000+1000), avatar: '', created: Date.now(), guest:true };
+  setSession(currentUser);
+  showLoggedIn();
 };
 
-function showMain(){
-  authBox.style.display = 'none';
-  mainUI.style.display = 'block';
-  leftbar.style.display = 'flex';
-  loadSection('descubre');
+// Update user mini and profile
+function updateUserUI(){
+  myAvatar.src = currentUser.avatar || 'https://api.dicebear.com/6.x/pixel-art/svg?seed=' + encodeURIComponent(currentUser.username);
+  profileAvatar.src = myAvatar.src;
+  profileName.textContent = currentUser.username;
+  userMini.innerHTML = `<div style="display:flex;align-items:center;gap:8px"><img src="${myAvatar.src}" style="width:36px;height:36px;border-radius:10px;margin-right:8px"/> <strong>${currentUser.username}</strong></div>`;
+  editName.value = currentUser.username;
+  editAvatar.value = currentUser.avatar || '';
 }
 
-// Compose Post
-send.onclick = ()=>{
-  const txt = text.value.trim();
-  if(!txt) return;
-  const post = {
-    user: currentUser,
+// Save profile edits
+saveProfile.onclick = ()=>{
+  const newName = editName.value.trim();
+  const newAvatar = editAvatar.value.trim();
+  if(!newName) return alert('Nombre vacío');
+  currentUser.username = newName;
+  currentUser.avatar = newAvatar;
+  setSession(currentUser);
+  updateUserUI();
+  alert('Perfil actualizado');
+};
+logoutBtn.onclick = ()=>{ clearSession(); location.reload(); };
+
+// Leftbar buttons
+qs('.navBtn').forEach(b=> b.addEventListener('click', ()=>{ const sec = b.dataset.sec; loadSection(sec); }))
+
+// Compose post
+const EXPIRATION_DAYS = 30;
+const EXPIRATION_MS = EXPIRATION_DAYS*24*60*60*1000;
+postBtn.onclick = ()=>{
+  const txt = postInput.value.trim(); if(!txt) return;
+  const payload = {
+    user: currentUser.username,
+    avatar: currentUser.avatar || myAvatar.src,
     text: txt,
-    timestamp: Date.now(),
-    likes: 0
+    likes: 0,
+    likedBy: {},
+    createdAt: Date.now(),
+    deleteAt: Date.now() + EXPIRATION_MS
   };
-  text.value = '';
-  db.ref('xposts').push(post);
-};
-
-// Render post
-function renderPost(key, p){
-  const div = document.createElement('div');
-  div.className = 'post';
-  div.innerHTML = `
-    <div class="meta">
-      <div class="profileIcon"></div>
-      <div>
-        <div class="username">${p.user}</div>
-        <div style="font-size:12px;color:#777;">${new Date(p.timestamp).toLocaleString()}</div>
-      </div>
-    </div>
-    <div>${escapeHtml(p.text)}</div>
-    <div class="actions">
-      <span onclick="likePost('${key}')">❤️ ${p.likes||0}</span>
-      <span onclick="sharePost('${key}')">🔗 Compartir</span>
-    </div>`;
-  return div;
+  const newRef = firebase.database().ref('xposts').push();
+  newRef.set(payload).then(()=>{ postInput.value=''; }).catch(e=>alert('Error: '+e.message));
 }
 
-function escapeHtml(s){return s.replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));}
-
-// Likes (1 por usuario)
+// Like with single like per user stored in likedBy map
 function likePost(id){
-  const liked = JSON.parse(localStorage.getItem('xchat_likes')||'{}');
-  if(liked[id]) return alert('Ya diste like');
-  db.ref('xposts/'+id).transaction(p=>{
-    if(p){ p.likes = (p.likes||0)+1; }
-    return p;
+  const userId = currentUser.username;
+  const ref = firebase.database().ref('xposts/' + id);
+  ref.transaction(post=>{
+    if(!post) return post;
+    if(post.user === userId) return post; // can't like own
+    post.likedBy = post.likedBy || {};
+    if(post.likedBy[userId]) return post; // already liked
+    post.likedBy[userId] = true;
+    post.likes = (post.likes||0) + 1;
+    return post;
   });
-  liked[id] = true;
-  localStorage.setItem('xchat_likes', JSON.stringify(liked));
 }
 
 // Share
-function sharePost(id){
-  const link = `https://xchat-web.netlify.app/?post=${id}`;
-  navigator.clipboard.writeText(link);
-  alert('Link copiado');
-}
+function sharePost(id){ const url = location.origin + location.pathname + '?post=' + id; navigator.clipboard.writeText(url).then(()=>alert('Link copiado')); }
 
-// Sections
-const postsEl = document.getElementById('posts');
-leftbar.querySelectorAll('button').forEach(btn=>{
-  btn.onclick = ()=>loadSection(btn.dataset.sec);
-});
-
-function loadSection(sec){
-  postsEl.innerHTML = '';
-  if(sec==='perfil'){
-    postsEl.innerHTML = `<button onclick="logout()">Cerrar sesión</button>`;
-    return;
-  }
-  let ref = db.ref('xposts');
-  if(sec==='inicio') ref = ref.orderByChild('timestamp');
-  if(sec==='descubre') ref = ref.orderByChild('timestamp');
-  if(sec==='popular') ref = ref.orderByChild('likes');
-
-  ref.limitToLast(100).once('value',snap=>{
-    const arr=[];
-    snap.forEach(ch=> arr.push([ch.key,ch.val()]));
-    if(sec==='popular') arr.sort((a,b)=>b[1].likes - a[1].likes);
-    else arr.sort((a,b)=>b[1].timestamp - a[1].timestamp);
-    arr.forEach(([k,p])=> postsEl.appendChild(renderPost(k,p)));
+// Delete post (only owner)
+function deletePost(id){
+  const ref = firebase.database().ref('xposts/' + id);
+  ref.once('value').then(s=>{
+    const p = s.val();
+    if(!p) return alert('No existe');
+    if(p.user !== currentUser.username) return alert('Solo el autor puede eliminar');
+    if(confirm('Eliminar post?')) ref.remove();
   });
 }
 
-function logout(){ localStorage.removeItem('xchat_user'); location.reload(); }
+// Render single post
+function renderPost(id, p){
+  const el = document.createElement('div'); el.className='post';
+  el.innerHTML = `
+    <img class="avatar" src="${p.avatar||'https://api.dicebear.com/6.x/pixel-art/svg?seed='+encodeURIComponent(p.user)}" />
+    <div class="body">
+      <div class="meta"><div class="username">${p.user}</div><div class="time"> · ${new Date(p.createdAt).toLocaleString()}</div></div>
+      <div class="text">${escapeHtml(p.text)}</div>
+      <div class="actions">
+        <button onclick="likePost('${id}')">❤️ ${p.likes||0}</button>
+        <button onclick="sharePost('${id}')">🔗</button>
+        ${p.user === currentUser.username ? `<button onclick="deletePost('${id}')">🗑️ Eliminar</button>` : ''}
+        <button onclick="openPostPage('${id}')">🔍 Abrir</button>
+      </div>
+    </div>`;
+  return el;
+}
+
+function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Load section
+function loadSection(sec){
+  feed.innerHTML = '';
+  if(sec==='perfil'){
+    // show profile + user posts
+    loadUserPosts(currentUser.username);
+    return;
+  }
+  const ref = firebase.database().ref('xposts');
+  ref.once('value').then(snap=>{
+    const data = snap.val() || {};
+    let arr = Object.entries(data);
+    if(sec==='popular') arr.sort((a,b)=> (b[1].likes||0) - (a[1].likes||0));
+    else arr.sort((a,b)=> b[1].createdAt - a[1].createdAt);
+    arr.forEach(([id,p])=>{
+      // expiration check: if expired and user is author, prompt once
+      const now = Date.now();
+      if(p.deleteAt && now > p.deleteAt){
+        const key = 'expired_prompt_'+id;
+        if(!localStorage.getItem(key) && p.user === currentUser.username){
+          const ask = confirm('Tu post de hace más de 30 días ha expirado. ¿Eliminarlo?');
+          if(ask) firebase.database().ref('xposts/' + id).remove();
+          localStorage.setItem(key,'1');
+          return; // skip rendering
+        } else {
+          return; // skip expired posts for everyone
+        }
+      }
+      feed.appendChild(renderPost(id,p));
+    });
+  });
+}
+
+function loadUserPosts(username){
+  feed.innerHTML = '';
+  const ref = firebase.database().ref('xposts');
+  ref.once('value').then(snap=>{
+    const data = snap.val()||{}; const arr = Object.entries(data).filter(([id,p])=>p.user===username).sort((a,b)=>b[1].createdAt - a[1].createdAt);
+    arr.forEach(([id,p])=> feed.appendChild(renderPost(id,p)));
+  });
+}
+
+// Live listeners (updates feed on changes) - simple approach: reload current section on child_changed/added/removed
+function startListeners(){
+  const root = firebase.database().ref('xposts');
+  root.on('child_added', ()=> reloadCurrent());
+  root.on('child_changed', ()=> reloadCurrent());
+  root.on('child_removed', ()=> reloadCurrent());
+}
+let currentSection = 'descubre';
+function reloadCurrent(){ loadSection(currentSection); }
+
+// open individual post page (change URL)
+function openPostPage(id){ history.pushState({},'',location.pathname + '?post=' + id); showSinglePost(id); }
+
+function showSinglePost(id){
+  profilePane.style.display='none';
+  feed.innerHTML='';
+  const ref = firebase.database().ref('xposts/' + id);
+  ref.once('value').then(snap=>{
+    const p = snap.val();
+    if(!p){ feed.innerHTML = '<div class="card">Post no encontrado</div>'; return; }
+    feed.appendChild(renderPost(id,p));
+  });
+}
+
+// on load: check query param
+function getQueryParam(name){ const u = new URL(location.href); return u.searchParams.get(name); }
+
+function startApp(){
+  // set defaults
+  qs('.navBtn').forEach(b=> b.addEventListener('click', ()=>{ currentSection = b.dataset.sec; loadSection(b.dataset.sec); }));
+  // animate leftbar hover: expand on hover
+  leftbar.addEventListener('mouseenter', ()=> leftbar.classList.add('expanded'));
+  leftbar.addEventListener('mouseleave', ()=> leftbar.classList.remove('expanded'));
+
+  // show single post if ?post=
+  const postId = getQueryParam('post');
+  if(postId){ showSinglePost(postId); } else { loadSection(currentSection); }
+}
+
+// kick off if logged
+if(currentUser){ updateUserUI(); startApp(); }
+
+// safety: wait for login if not
+// ensure functions available globally for inline onclicks
+window.likePost = likePost; window.sharePost = sharePost; window.deletePost = deletePost; window.openPostPage = openPostPage;
+
 </script>
 </body>
 </html>
