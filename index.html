@@ -5,409 +5,409 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>XChat</title>
 <style>
-  /* RESET */
-  *{margin:0;padding:0;box-sizing:border-box}
-  
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color:#1a202c;
-    display:flex;
-    min-height:100vh;
-    position:relative;
-  }
+  /* RESET */
+  *{margin:0;padding:0;box-sizing:border-box}
+  
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#1a202c;
+    display:flex;
+    min-height:100vh;
+    position:relative;
+  }
 
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: 
-      radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(138, 43, 226, 0.3), transparent 50%);
-    pointer-events: none;
-    z-index: 0;
-  }
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(138, 43, 226, 0.3), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
 
-  /* LEFTBAR */
-  #leftbar{
-    width:80px;
-    background:rgba(255,255,255,0.95);
-    backdrop-filter:blur(10px);
-    border-right:1px solid rgba(255,255,255,0.3);
-    padding:20px 12px;
-    display:none;
-    flex-direction:column;
-    gap:8px;
-    align-items:center;
-    transition:width .3s cubic-bezier(0.4, 0, 0.2, 1);
-    position:fixed;
-    left:0;
-    top:0;
-    bottom:0;
-    z-index:100;
-    box-shadow:4px 0 24px rgba(0,0,0,0.08);
-  }
-  
-  #leftbar:hover{width:240px}
-  
-  #leftbar button{
-    background:none;
-    border:none;
-    font-size:15px;
-    font-weight:500;
-    cursor:pointer;
-    color:#4a5568;
-    width:100%;
-    text-align:left;
-    padding:14px 16px;
-    border-radius:12px;
-    transition:all .2s cubic-bezier(0.4, 0, 0.2, 1);
-    display:flex;
-    align-items:center;
-    gap:12px;
-    white-space:nowrap;
-    overflow:hidden;
-  }
-  
-  #leftbar button:hover{
-    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color:#fff;
-    transform:translateX(4px);
-    box-shadow:0 4px 12px rgba(102, 126, 234, 0.3);
-  }
+  /* LEFTBAR */
+  #leftbar{
+    width:80px;
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(10px);
+    border-right:1px solid rgba(255,255,255,0.3);
+    padding:20px 12px;
+    display:none;
+    flex-direction:column;
+    gap:8px;
+    align-items:center;
+    transition:width .3s cubic-bezier(0.4, 0, 0.2, 1);
+    position:fixed;
+    left:0;
+    top:0;
+    bottom:0;
+    z-index:100;
+    box-shadow:4px 0 24px rgba(0,0,0,0.08);
+  }
+  
+  #leftbar:hover{width:240px}
+  
+  #leftbar button{
+    background:none;
+    border:none;
+    font-size:15px;
+    font-weight:500;
+    cursor:pointer;
+    color:#4a5568;
+    width:100%;
+    text-align:left;
+    padding:14px 16px;
+    border-radius:12px;
+    transition:all .2s cubic-bezier(0.4, 0, 0.2, 1);
+    display:flex;
+    align-items:center;
+    gap:12px;
+    white-space:nowrap;
+    overflow:hidden;
+  }
+  
+  #leftbar button:hover{
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+    transform:translateX(4px);
+    box-shadow:0 4px 12px rgba(102, 126, 234, 0.3);
+  }
 
-  #leftbar button::before {
-    content: '●';
-    font-size: 20px;
-    min-width: 24px;
-  }
+  #leftbar button::before {
+    content: '●';
+    font-size: 20px;
+    min-width: 24px;
+  }
 
-  /* APP */
-  #app{
-    flex:1;
-    display:flex;
-    flex-direction:column;
-    max-width:680px;
-    margin:0 auto;
-    padding:20px;
-    position:relative;
-    z-index:1;
-  }
+  /* APP */
+  #app{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    max-width:680px;
+    margin:0 auto;
+    padding:20px;
+    position:relative;
+    z-index:1;
+  }
 
-  /* AUTH */
-  #authBox{
-    max-width:420px;
-    margin:80px auto;
-    padding:40px;
-    background:rgba(255,255,255,0.95);
-    backdrop-filter:blur(20px);
-    border-radius:24px;
-    box-shadow:0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.3);
-    animation:fadeInUp 0.6s ease-out;
-  }
+  /* AUTH */
+  #authBox{
+    max-width:420px;
+    margin:80px auto;
+    padding:40px;
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:24px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.3);
+    animation:fadeInUp 0.6s ease-out;
+  }
 
-  @keyframes fadeInUp {
-    from {
-      opacity:0;
-      transform:translateY(30px);
-    }
-    to {
-      opacity:1;
-      transform:translateY(0);
-    }
-  }
-  
-  #authBox h2{
-    text-align:center;
-    margin-bottom:24px;
-    font-size:28px;
-    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-    background-clip:text;
-  }
-  
-  input{
-    width:100%;
-    padding:14px 16px;
-    margin:8px 0;
-    border-radius:12px;
-    border:2px solid #e2e8f0;
-    font-size:15px;
-    transition:all .3s;
-    background:#fff;
-  }
+  @keyframes fadeInUp {
+    from {
+      opacity:0;
+      transform:translateY(30px);
+    }
+    to {
+      opacity:1;
+      transform:translateY(0);
+    }
+  }
+  
+  #authBox h2{
+    text-align:center;
+    margin-bottom:24px;
+    font-size:28px;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+  
+  input{
+    width:100%;
+    padding:14px 16px;
+    margin:8px 0;
+    border-radius:12px;
+    border:2px solid #e2e8f0;
+    font-size:15px;
+    transition:all .3s;
+    background:#fff;
+  }
 
-  input:focus {
-    outline:none;
-    border-color:#667eea;
-    box-shadow:0 0 0 3px rgba(102, 126, 234, 0.1);
-  }
-  
-  #authBox button{
-    width:100%;
-    padding:14px;
-    border:none;
-    border-radius:12px;
-    margin-top:16px;
-    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color:#fff;
-    font-size:16px;
-    font-weight:600;
-    cursor:pointer;
-    transition:all .3s;
-    box-shadow:0 4px 15px rgba(102, 126, 234, 0.4);
-  }
+  input:focus {
+    outline:none;
+    border-color:#667eea;
+    box-shadow:0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+  
+  #authBox button{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    margin-top:16px;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+    font-size:16px;
+    font-weight:600;
+    cursor:pointer;
+    transition:all .3s;
+    box-shadow:0 4px 15px rgba(102, 126, 234, 0.4);
+  }
 
-  #authBox button:hover {
-    transform:translateY(-2px);
-    box-shadow:0 6px 25px rgba(102, 126, 234, 0.5);
-  }
+  #authBox button:hover {
+    transform:translateY(-2px);
+    box-shadow:0 6px 25px rgba(102, 126, 234, 0.5);
+  }
 
-  #authBox button:active {
-    transform:translateY(0);
-  }
+  #authBox button:active {
+    transform:translateY(0);
+  }
 
-  /* POSTS */
-  #composer{
-    display:flex;
-    gap:12px;
-    margin-bottom:24px;
-    padding:20px;
-    background:rgba(255,255,255,0.95);
-    backdrop-filter:blur(20px);
-    border-radius:20px;
-    box-shadow:0 8px 32px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.3);
-    animation:fadeInUp 0.6s ease-out;
-  }
-  
-  #composer textarea{
-    flex:1;
-    min-height:80px;
-    border-radius:14px;
-    padding:14px;
-    border:2px solid #e2e8f0;
-    resize:none;
-    font-size:15px;
-    font-family:inherit;
-    transition:all .3s;
-    background:#fff;
-  }
+  /* POSTS */
+  #composer{
+    display:flex;
+    gap:12px;
+    margin-bottom:24px;
+    padding:20px;
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:20px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.3);
+    animation:fadeInUp 0.6s ease-out;
+  }
+  
+  #composer textarea{
+    flex:1;
+    min-height:80px;
+    border-radius:14px;
+    padding:14px;
+    border:2px solid #e2e8f0;
+    resize:none;
+    font-size:15px;
+    font-family:inherit;
+    transition:all .3s;
+    background:#fff;
+  }
 
-  #composer textarea:focus {
-    outline:none;
-    border-color:#667eea;
-    box-shadow:0 0 0 3px rgba(102, 126, 234, 0.1);
-  }
-  
-  #composer button{
-    padding:12px 24px;
-    border:none;
-    border-radius:14px;
-    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color:#fff;
-    cursor:pointer;
-    font-weight:600;
-    font-size:15px;
-    transition:all .3s;
-    height:fit-content;
-    align-self:flex-end;
-    box-shadow:0 4px 15px rgba(102, 126, 234, 0.3);
-  }
+  #composer textarea:focus {
+    outline:none;
+    border-color:#667eea;
+    box-shadow:0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+  
+  #composer button{
+    padding:12px 24px;
+    border:none;
+    border-radius:14px;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+    cursor:pointer;
+    font-weight:600;
+    font-size:15px;
+    transition:all .3s;
+    height:fit-content;
+    align-self:flex-end;
+    box-shadow:0 4px 15px rgba(102, 126, 234, 0.3);
+  }
 
-  #composer button:hover {
-    transform:translateY(-2px);
-    box-shadow:0 6px 20px rgba(102, 126, 234, 0.4);
-  }
+  #composer button:hover {
+    transform:translateY(-2px);
+    box-shadow:0 6px 20px rgba(102, 126, 234, 0.4);
+  }
 
-  .post{
-    background:rgba(255,255,255,0.95);
-    backdrop-filter:blur(20px);
-    padding:20px;
-    border-radius:20px;
-    margin-bottom:16px;
-    border:1px solid rgba(255,255,255,0.3);
-    box-shadow:0 4px 20px rgba(0,0,0,0.06);
-    transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);
-    animation:fadeInUp 0.4s ease-out;
-  }
+  .post{
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    padding:20px;
+    border-radius:20px;
+    margin-bottom:16px;
+    border:1px solid rgba(255,255,255,0.3);
+    box-shadow:0 4px 20px rgba(0,0,0,0.06);
+    transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation:fadeInUp 0.4s ease-out;
+  }
 
-  .post:hover {
-    transform:translateY(-4px);
-    box-shadow:0 12px 40px rgba(0,0,0,0.12);
-  }
-  
-  .post .meta{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    margin-bottom:12px;
-  }
-  
-  .profileIcon{
-    width:48px;
-    height:48px;
-    border-radius:50%;
-    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    object-fit:cover;
-    border:3px solid #fff;
-    box-shadow:0 2px 8px rgba(0,0,0,0.1);
-  }
-  
-  .username{
-    font-weight:700;
-    font-size:16px;
-    color:#1a202c;
-  }
+  .post:hover {
+    transform:translateY(-4px);
+    box-shadow:0 12px 40px rgba(0,0,0,0.12);
+  }
+  
+  .post .meta{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:12px;
+  }
+  
+  .profileIcon{
+    width:48px;
+    height:48px;
+    border-radius:50%;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    object-fit:cover;
+    border:3px solid #fff;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .username{
+    font-weight:700;
+    font-size:16px;
+    color:#1a202c;
+  }
 
-  .post > div:nth-child(2) {
-    font-size:15px;
-    line-height:1.6;
-    color:#2d3748;
-    margin-bottom:12px;
-  }
-  
-  .actions{
-    display:flex;
-    gap:24px;
-    margin-top:16px;
-    padding-top:12px;
-    border-top:1px solid #e2e8f0;
-    font-size:14px;
-    color:#718096;
-  }
-  
-  .actions span{
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    gap:6px;
-    padding:6px 12px;
-    border-radius:8px;
-    transition:all .2s;
-    font-weight:500;
-  }
+  .post > div:nth-child(2) {
+    font-size:15px;
+    line-height:1.6;
+    color:#2d3748;
+    margin-bottom:12px;
+  }
+  
+  .actions{
+    display:flex;
+    gap:24px;
+    margin-top:16px;
+    padding-top:12px;
+    border-top:1px solid #e2e8f0;
+    font-size:14px;
+    color:#718096;
+  }
+  
+  .actions span{
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 12px;
+    border-radius:8px;
+    transition:all .2s;
+    font-weight:500;
+  }
 
-  .actions span:hover {
-    background:rgba(102, 126, 234, 0.1);
-    color:#667eea;
-  }
+  .actions span:hover {
+    background:rgba(102, 126, 234, 0.1);
+    color:#667eea;
+  }
 
-  /* MOBILE */
-  @media (max-width: 768px) {
-    #leftbar {
-      width: 100%;
-      height: auto;
-      top: auto;
-      bottom: 0;
-      flex-direction: row;
-      padding: 12px;
-      justify-content: space-around;
-    }
+  /* MOBILE */
+  @media (max-width: 768px) {
+    #leftbar {
+      width: 100%;
+      height: auto;
+      top: auto;
+      bottom: 0;
+      flex-direction: row;
+      padding: 12px;
+      justify-content: space-around;
+    }
 
-    #leftbar:hover {
-      width: 100%;
-    }
+    #leftbar:hover {
+      width: 100%;
+    }
 
-    #leftbar button::before {
-      display: none;
-    }
+    #leftbar button::before {
+      display: none;
+    }
 
-    #app {
-      padding: 20px 16px 80px 16px;
-    }
-  }
+    #app {
+      padding: 20px 16px 80px 16px;
+    }
+  }
 
-  /* PROFILE SECTION */
-  .profile-container {
-    padding:32px;
-    background:rgba(255,255,255,0.95);
-    backdrop-filter:blur(20px);
-    border-radius:20px;
-    border:1px solid rgba(255,255,255,0.3);
-    box-shadow:0 8px 32px rgba(0,0,0,0.1);
-    max-width:500px;
-    margin:20px auto;
-    animation:fadeInUp 0.6s ease-out;
-  }
+  /* PROFILE SECTION */
+  .profile-container {
+    padding:32px;
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:20px;
+    border:1px solid rgba(255,255,255,0.3);
+    box-shadow:0 8px 32px rgba(0,0,0,0.1);
+    max-width:500px;
+    margin:20px auto;
+    animation:fadeInUp 0.6s ease-out;
+  }
 
-  .profile-container h2 {
-    margin-bottom:24px;
-    font-size:24px;
-    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-    background-clip:text;
-  }
+  .profile-container h2 {
+    margin-bottom:24px;
+    font-size:24px;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
 
-  .profile-container label {
-    display:block;
-    margin-top:16px;
-    margin-bottom:6px;
-    font-weight:600;
-    color:#4a5568;
-    font-size:14px;
-  }
+  .profile-container label {
+    display:block;
+    margin-top:16px;
+    margin-bottom:6px;
+    font-weight:600;
+    color:#4a5568;
+    font-size:14px;
+  }
 
-  .profile-container button {
-    margin-top:16px;
-    width:100%;
-    padding:14px;
-    border:none;
-    border-radius:12px;
-    color:#fff;
-    cursor:pointer;
-    font-weight:600;
-    font-size:15px;
-    transition:all .3s;
-  }
+  .profile-container button {
+    margin-top:16px;
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    color:#fff;
+    cursor:pointer;
+    font-weight:600;
+    font-size:15px;
+    transition:all .3s;
+  }
 
-  .profile-container button:first-of-type {
-    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    box-shadow:0 4px 15px rgba(102, 126, 234, 0.3);
-  }
+  .profile-container button:first-of-type {
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow:0 4px 15px rgba(102, 126, 234, 0.3);
+  }
 
-  .profile-container button:first-of-type:hover {
-    transform:translateY(-2px);
-    box-shadow:0 6px 20px rgba(102, 126, 234, 0.4);
-  }
+  .profile-container button:first-of-type:hover {
+    transform:translateY(-2px);
+    box-shadow:0 6px 20px rgba(102, 126, 234, 0.4);
+  }
 
-  .profile-container button:last-of-type {
-    background:linear-gradient(135deg, #fc5c7d 0%, #6a82fb 100%);
-    box-shadow:0 4px 15px rgba(252, 92, 125, 0.3);
-  }
+  .profile-container button:last-of-type {
+    background:linear-gradient(135deg, #fc5c7d 0%, #6a82fb 100%);
+    box-shadow:0 4px 15px rgba(252, 92, 125, 0.3);
+  }
 
-  .profile-container button:last-of-type:hover {
-    transform:translateY(-2px);
-    box-shadow:0 6px 20px rgba(252, 92, 125, 0.4);
-  }
+  .profile-container button:last-of-type:hover {
+    transform:translateY(-2px);
+    box-shadow:0 6px 20px rgba(252, 92, 125, 0.4);
+  }
 </style>
 </head>
 <body>
 <div id="leftbar">
-  <button data-sec="inicio">Inicio</button>
-  <button data-sec="descubre">Descubre</button>
-  <button data-sec="popular">Popular</button>
-  <button data-sec="perfil">Perfil</button>
+  <button data-sec="inicio">Inicio</button>
+  <button data-sec="descubre">Descubre</button>
+  <button data-sec="popular">Popular</button>
+  <button data-sec="perfil">Perfil</button>
 </div>
 
 <div id="app">
-  <div id="authBox">
-    <h2>XChat — Login</h2>
-    <input id="user" placeholder="Nombre de usuario" />
-    <button id="loginBtn">Entrar</button>
-  </div>
+  <div id="authBox">
+    <h2>XChat — Login</h2>
+    <input id="user" placeholder="Nombre de usuario" />
+    <button id="loginBtn">Entrar</button>
+  </div>
 
-  <div id="mainUI" style="display:none;">
-    <div id="composer">
-      <textarea id="text" placeholder="¿Qué estás pensando?"></textarea>
-      <button id="send">Enviar</button>
-    </div>
-    <div id="posts"></div>
-  </div>
+  <div id="mainUI" style="display:none;">
+    <div id="composer">
+      <textarea id="text" placeholder="¿Qué estás pensando?"></textarea>
+      <button id="send">Enviar</button>
+    </div>
+    <div id="posts"></div>
+  </div>
 </div>
 
 <script type="module">
@@ -415,13 +415,13 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebas
 import { getDatabase, ref, push, set, onValue, limitToLast, query, runTransaction } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyATTtOEPHOi3lBiM9CcgzkCN-MSK50RjY4",
-  authDomain: "retwitt-af48c.firebaseapp.com",
-  projectId: "retwitt-af48c",
-  storageBucket: "retwitt-af48c.firebasestorage.app",
-  messagingSenderId: "1000651551704",
-  appId: "1:1000651551704:web:89733743b024fd8c4cf8ad",
-  measurementId: "G-P5GWG9CEC1"
+  apiKey: "AIzaSyATTtOEPHOi3lBiM9CcgzkCN-MSK50RjY4",
+  authDomain: "retwitt-af48c.firebaseapp.com",
+  projectId: "retwitt-af48c",
+  storageBucket: "retwitt-af48c.firebasestorage.app",
+  messagingSenderId: "1000651551704",
+  appId: "1:1000651551704:web:89733743b024fd8c4cf8ad",
+  measurementId: "G-P5GWG9CEC1"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -433,184 +433,171 @@ const mainUI = document.getElementById('mainUI');
 const leftbar = document.getElementById('leftbar');
 const postsEl = document.getElementById('posts');
 let currentListener = null;
-let currentSection = 'descubre';
 
 if (currentUser) showMain();
 
 document.getElementById('loginBtn').onclick = () => {
-  const uname = document.getElementById('user').value.trim();
-  if (!uname) return alert('Escribe un nombre.');
+  const uname = document.getElementById('user').value.trim();
+  if (!uname) return alert('Escribe un nombre.');
 
-  currentUser = {
-    username: uname,
-    avatar: `https://api.dicebear.com/7.x/thumbs/svg?seed=${uname}`
-  };
+  currentUser = {
+    username: uname,
+    avatar: `https://api.dicebear.com/7.x/thumbs/svg?seed=${uname}`
+  };
 
-  localStorage.setItem('xchat_user', JSON.stringify(currentUser));
-  location.reload();
+  localStorage.setItem('xchat_user', JSON.stringify(currentUser));
+  location.reload();
 };
 
 function showMain() {
-  authBox.style.display = 'none';
-  mainUI.style.display = 'block';
-  leftbar.style.display = 'flex';
-
-  setupSendButton();
-  loadSection(currentSection);
-}
-
-function setupSendButton() {
-  const sendBtn = document.getElementById('send');
-  const textArea = document.getElementById('text');
-  const newSendBtn = sendBtn.cloneNode(true);
-  sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
-
-  newSendBtn.addEventListener('click', async () => {
-    const txt = textArea.value.trim();
-    if (!txt) return;
-
-    textArea.disabled = true;
-    newSendBtn.disabled = true;
-    newSendBtn.textContent = 'Enviando...';
-
-    try {
-      const t = Date.now();
-      const newPostRef = push(ref(db, 'xposts'));
-      await set(newPostRef, {
-        user: currentUser.username,
-        avatar: currentUser.avatar,
-        text: txt,
-        timestamp: t,
-        likes: 0,
-        section: currentSection
-      });
-      textArea.value = '';
-    } catch(e) {
-      alert('Error al enviar.');
-    }
-
-    textArea.disabled = false;
-    newSendBtn.disabled = false;
-    newSendBtn.textContent = 'Enviar';
-    textArea.focus();
-  });
+  authBox.style.display = 'none';
+  mainUI.style.display = 'block';
+  leftbar.style.display = 'flex';
+  
+  // Configurar botón de enviar
+  document.getElementById('send').onclick = async () => {
+    const textArea = document.getElementById('text');
+    const sendBtn = document.getElementById('send');
+    const txt = textArea.value.trim();
+    
+    if (!txt) return;
+    
+    textArea.disabled = true;
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Enviando...';
+    
+    try {
+      const t = Date.now();
+      const newPostRef = push(ref(db, 'xposts'));
+      await set(newPostRef, {
+        user: currentUser.username,
+        avatar: currentUser.avatar,
+        text: txt,
+        timestamp: t,
+        likes: 0
+      });
+      textArea.value = '';
+    } catch(e) {
+      console.error('Error:', e);
+      alert('Error al enviar.');
+    }
+    
+    textArea.disabled = false;
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Enviar';
+    textArea.focus();
+  };
+  
+  loadSection('descubre');
 }
 
 function renderPost(key, p) {
-  const div = document.createElement('div');
-  div.className = 'post';
-  const avatar = p.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${p.user}`;
-  div.innerHTML = `
-    <div class="meta">
-      <img class="profileIcon" src="${avatar}" />
-      <div>
-        <div class="username">${p.user}</div>
-        <div style="font-size:12px;color:#999;">${new Date(p.timestamp).toLocaleString()}</div>
-      </div>
-    </div>
-    <div>${escapeHtml(p.text)}</div>
-    <div class="actions">
-      <span data-action="like" data-key="${key}">❤️ ${p.likes || 0}</span>
-      <span data-action="share" data-key="${key}">🔗 Compartir</span>
-    </div>`;
- 
-  div.querySelector('[data-action="like"]').onclick = () => likePost(key);
-  div.querySelector('[data-action="share"]').onclick = () => sharePost(key);
+  const div = document.createElement('div');
+  div.className = 'post';
+  const avatar = p.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${p.user}`;
+  div.innerHTML = `
+    <div class="meta">
+      <img class="profileIcon" src="${avatar}" />
+      <div>
+        <div class="username">${p.user}</div>
+        <div style="font-size:12px;color:#999;">${new Date(p.timestamp).toLocaleString()}</div>
+      </div>
+    </div>
+    <div>${escapeHtml(p.text)}</div>
+    <div class="actions">
+      <span data-action="like" data-key="${key}">❤️ ${p.likes || 0}</span>
+      <span data-action="share" data-key="${key}">🔗 Compartir</span>
+    </div>`;
+ 
+  div.querySelector('[data-action="like"]').onclick = () => likePost(key);
+  div.querySelector('[data-action="share"]').onclick = () => sharePost(key);
 
-  return div;
+  return div;
 }
 
 function escapeHtml(s) {
-  return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+  return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 }
 
 function likePost(id) {
-  const liked = JSON.parse(localStorage.getItem('xchat_likes') || '{}');
-  if (liked[id]) return alert('Ya diste like');
+  const liked = JSON.parse(localStorage.getItem('xchat_likes') || '{}');
+  if (liked[id]) return alert('Ya diste like');
 
-  runTransaction(ref(db,'xposts/'+id), (p) => {
-    if (p) p.likes = (p.likes||0)+1;
-    return p;
-  });
-  liked[id]=true;
-  localStorage.setItem('xchat_likes', JSON.stringify(liked));
+  runTransaction(ref(db,'xposts/'+id), (p) => {
+    if (p) p.likes = (p.likes||0)+1;
+    return p;
+  });
+  liked[id]=true;
+  localStorage.setItem('xchat_likes', JSON.stringify(liked));
 }
 
 function sharePost(id) {
-  navigator.clipboard.writeText(location.origin + `/?post=${id}`);
-  alert('Link copiado');
+  navigator.clipboard.writeText(location.origin + `/?post=${id}`);
+  alert('Link copiado');
 }
 
 leftbar.querySelectorAll('button').forEach(btn => {
-  btn.onclick = () => loadSection(btn.dataset.sec);
+  btn.onclick = () => loadSection(btn.dataset.sec);
 });
 
 function loadSection(sec) {
-  currentSection = sec;
-  postsEl.innerHTML = '';
+  postsEl.innerHTML = '';
 
-  if (currentListener) {
-    currentListener();
-    currentListener = null;
-  }
+  if (currentListener) {
+    currentListener();
+    currentListener = null;
+  }
 
-  if (sec==='perfil') {
-    const u = currentUser;
-    postsEl.innerHTML = `
-      <div class="profile-container">
-        <h2>Editar perfil</h2>
-        <label>Nombre:</label>
-        <input id="editName" value="${u.username}" />
-        <label>Avatar URL:</label>
-        <input id="editAvatar" value="${u.avatar}" />
-        <button id="saveProfileBtn">Guardar cambios</button>
-        <button id="logoutBtn">Cerrar sesión</button>
-      </div>`;
-    document.getElementById('saveProfileBtn').onclick = saveProfile;
-    document.getElementById('logoutBtn').onclick = logout;
-    return;
-  }
+  if (sec==='perfil') {
+    const u = currentUser;
+    postsEl.innerHTML = `
+      <div class="profile-container">
+        <h2>Editar perfil</h2>
+        <label>Nombre:</label>
+        <input id="editName" value="${u.username}" />
+        <label>Avatar URL:</label>
+        <input id="editAvatar" value="${u.avatar}" />
+        <button id="saveProfileBtn">Guardar cambios</button>
+        <button id="logoutBtn">Cerrar sesión</button>
+      </div>`;
+    document.getElementById('saveProfileBtn').onclick = saveProfile;
+    document.getElementById('logoutBtn').onclick = logout;
+    return;
+  }
 
-  const postsRef = ref(db,'xposts');
-  const postsQuery = query(postsRef, limitToLast(100));
+  const postsRef = ref(db,'xposts');
+  const postsQuery = query(postsRef, limitToLast(100));
 
-  currentListener = onValue(postsQuery, snap => {
-    postsEl.innerHTML = '';
-    const arr = [];
+  currentListener = onValue(postsQuery, snap => {
+    postsEl.innerHTML = '';
+    const arr = [];
 
-    snap.forEach(ch => {
-      const p = ch.val();
-      if(!p.timestamp) p.timestamp=0;
+    snap.forEach(ch => {
+      arr.push([ch.key, ch.val()]);
+    });
 
-      if(sec!=='inicio' && sec!=='popular' && p.section!==sec) return;
-      arr.push([ch.key, p]);
-    });
+    if(sec==='popular') arr.sort((a,b)=>(b[1].likes||0)-(a[1].likes||0));
+    else arr.sort((a,b)=>b[1].timestamp-a[1].timestamp);
 
-    if(sec==='popular') arr.sort((a,b)=>(b[1].likes||0)-(a[1].likes||0));
-    else arr.sort((a,b)=>b[1].timestamp-a[1].timestamp);
-
-    arr.forEach(([k,p])=>postsEl.appendChild(renderPost(k,p)));
-  });
+    arr.forEach(([k,p])=>postsEl.appendChild(renderPost(k,p)));
+  });
 }
 
 function saveProfile() {
-  const name = document.getElementById('editName').value.trim();
-  const avatar = document.getElementById('editAvatar').value.trim();
-  if(!name) return alert('Nombre inválido');
+  const name = document.getElementById('editName').value.trim();
+  const avatar = document.getElementById('editAvatar').value.trim();
+  if(!name) return alert('Nombre inválido');
 
-  currentUser={username:name,avatar:avatar||`https://api.dicebear.com/7.x/thumbs/svg?seed=${name}`};
-  localStorage.setItem('xchat_user',JSON.stringify(currentUser));
-  alert('Perfil actualizado');
-  loadSection('perfil');
+  currentUser={username:name,avatar:avatar||`https://api.dicebear.com/7.x/thumbs/svg?seed=${name}`};
+  localStorage.setItem('xchat_user',JSON.stringify(currentUser));
+  alert('Perfil actualizado');
+  loadSection('perfil');
 }
 
 function logout() {
-  localStorage.removeItem('xchat_user');
-  location.reload();
+  localStorage.removeItem('xchat_user');
+  location.reload();
 }
-
-window.saveProfile = saveProfile;
-window.logout = logout;
 </script>
 </body>
 </html>
