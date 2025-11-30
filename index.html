@@ -619,6 +619,112 @@
   .chat-audio {
     margin-top:8px;
   }
+
+  /* CALL STYLES */
+  .call-container {
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    background:rgba(0,0,0,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:20px;
+    padding:40px;
+    z-index:1000;
+    text-align:center;
+    min-width:400px;
+  }
+
+  .call-video {
+    width:100%;
+    max-width:600px;
+    border-radius:12px;
+    margin:20px 0;
+  }
+
+  .call-controls {
+    display:flex;
+    gap:16px;
+    justify-content:center;
+    margin-top:20px;
+  }
+
+  .call-btn {
+    width:60px;
+    height:60px;
+    border:none;
+    border-radius:50%;
+    cursor:pointer;
+    font-size:24px;
+    transition:all .3s;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .call-btn.answer {
+    background:linear-gradient(135deg, #10b981 0%, #059669 100%);
+  }
+
+  .call-btn.decline {
+    background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  }
+
+  .call-btn:hover {
+    transform:scale(1.1);
+  }
+
+  .recording-indicator {
+    display:inline-block;
+    width:12px;
+    height:12px;
+    background:#ef4444;
+    border-radius:50%;
+    animation:pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity:1; }
+    50% { opacity:0.3; }
+  }
+
+  .audio-recorder-btn {
+    padding:12px;
+    border:none;
+    border-radius:12px;
+    background:#e2e8f0;
+    cursor:pointer;
+    font-size:20px;
+    transition:all .3s;
+  }
+
+  .audio-recorder-btn.recording {
+    background:#ef4444;
+    color:#fff;
+    animation:pulse 1.5s infinite;
+  }
+
+  .chat-message-actions {
+    position:absolute;
+    top:8px;
+    right:8px;
+    opacity:0;
+    transition:opacity .3s;
+  }
+
+  .chat-message:hover .chat-message-actions {
+    opacity:1;
+  }
+
+  .delete-message-btn {
+    background:rgba(239, 68, 68, 0.9);
+    color:#fff;
+    border:none;
+    border-radius:6px;
+    padding:4px 8px;
+    cursor:pointer;
+    font-size:12px;
+  }
 </style>
 </head>
 <body>
@@ -629,7 +735,7 @@
   <button data-sec="siguiendo">Siguiendo</button>
   <button data-sec="mensajes">Mensajes</button>
   <button data-sec="mas">Más</button>
-  <button data-sec="perfil">Perfil</button>
+  <button data-sec="configuracion">Configuración</button>
 </div>
 
 <div id="app">
@@ -687,6 +793,10 @@ const currentUserId = getUserId();
 // Inicializar PeerJS
 let peer = null;
 let activeConnections = {};
+let currentCall = null;
+let localStream = null;
+let audioRecorder = null;
+let audioChunks = [];
 
 function initPeer() {
   if (peer) return;
@@ -708,6 +818,10 @@ function initPeer() {
   
   peer.on('connection', (conn) => {
     setupConnection(conn);
+  });
+  
+  peer.on('call', (call) => {
+    handleIncomingCall(call);
   });
   
   peer.on('error', (err) => {
@@ -737,7 +851,9 @@ function handleIncomingMessage(data, fromPeer) {
   const newMessageRef = push(messagesRef);
   
   set(newMessageRef, {
+    id: newMessageRef.key,
     from: data.from,
+    fromUserId: data.fromUserId,
     to: currentUser.username,
     text: data.text,
     type: data.type || 'text',
@@ -748,6 +864,9 @@ function handleIncomingMessage(data, fromPeer) {
   
   // Crear notificación
   createNotification(currentUser.username, 'message', `${data.from} te envió un mensaje`, data.from);
+  
+  // Notificación del navegador
+  showBrowserNotification('Nuevo mensaje', `${data.from}: ${data.text || 'Archivo multimedia'}`);
 }
 
 if (currentUser) showMain();
@@ -755,6 +874,26 @@ if (currentUser) showMain();
 // Inicializar peer cuando el usuario está logueado
 if (currentUser) {
   initPeer();
+  requestNotificationPermission();
+}
+
+// Solicitar permiso para notificaciones del navegador
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// Mostrar notificación del navegador
+function showBrowserNotification(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, {
+      body: body,
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+      tag: 'twivo-notification'
+    });
+  }
 }
 
 // Verificar si hay un post o usuario en la URL
@@ -1114,22 +1253,8 @@ function loadSection(sec) {
     currentListener = null;
   }
 
-  if (sec==='perfil') {
-    const u = currentUser;
-    postsEl.innerHTML = `
-      <div class="profile-container">
-        <h2>Editar mi perfil</h2>
-        <label>Nombre de usuario:</label>
-        <input id="editName" value="${u.username}" />
-        <label>Avatar URL:</label>
-        <input id="editAvatar" value="${u.avatar || ''}" placeholder="https://..." />
-        <label>Banner URL:</label>
-        <input id="editBanner" value="${u.banner || ''}" placeholder="https://..." />
-        <button id="saveProfileBtn">Guardar cambios</button>
-        <button id="logoutBtn">Cerrar sesión</button>
-      </div>`;
-    document.getElementById('saveProfileBtn').onclick = saveProfile;
-    document.getElementById('logoutBtn').onclick = logout;
+  if (sec==='configuracion') {
+    loadConfigSection();
     return;
   }
 
@@ -1668,7 +1793,118 @@ function createNotification(toUser, type, message, fromUser) {
     timestamp: Date.now(),
     read: false
   });
+  
+  // Notificación del navegador
+  if (toUser !== currentUser.username) {
+    showBrowserNotification('Twivo', message);
+  }
 }
+
+// Sección de configuración
+function loadConfigSection() {
+  const u = currentUser;
+  postsEl.innerHTML = `
+    <div class="profile-container">
+      <h2>⚙️ Configuración</h2>
+      
+      <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">👤 Perfil</h3>
+      <label>Nombre de usuario:</label>
+      <input id="editName" value="${u.username}" />
+      <label>Avatar URL:</label>
+      <input id="editAvatar" value="${u.avatar || ''}" placeholder="https://..." />
+      <label>Banner URL:</label>
+      <input id="editBanner" value="${u.banner || ''}" placeholder="https://..." />
+      <button id="saveProfileBtn">Guardar cambios</button>
+      
+      <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">🔔 Notificaciones</h3>
+      <button id="enableNotifsBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;cursor:pointer;font-weight:600;margin-top:8px;">
+        Activar notificaciones del navegador
+      </button>
+      
+      <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">📜 Legal</h3>
+      <button id="privacyBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:rgba(255,255,255,0.5);cursor:pointer;font-weight:600;margin-top:8px;">
+        Política de Privacidad
+      </button>
+      <button id="securityBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:rgba(255,255,255,0.5);cursor:pointer;font-weight:600;margin-top:8px;">
+        Seguridad y Datos
+      </button>
+      
+      <button id="logoutBtn" style="margin-top:24px;width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg, #fc5c7d 0%, #6a82fb 100%);color:#fff;cursor:pointer;font-weight:600;">
+        Cerrar sesión
+      </button>
+    </div>`;
+  
+  document.getElementById('saveProfileBtn').onclick = saveProfile;
+  document.getElementById('logoutBtn').onclick = logout;
+  document.getElementById('enableNotifsBtn').onclick = () => {
+    requestNotificationPermission();
+    alert('Permiso solicitado. Por favor, acepta las notificaciones en tu navegador.');
+  };
+  document.getElementById('privacyBtn').onclick = showPrivacyPolicy;
+  document.getElementById('securityBtn').onclick = showSecurityPolicy;
+}
+
+function showPrivacyPolicy() {
+  postsEl.innerHTML = `
+    <div class="profile-container">
+      <button onclick="loadConfigSection()" style="margin-bottom:20px;padding:10px 20px;border:none;border-radius:12px;background:rgba(255,255,255,0.95);cursor:pointer;font-weight:600;">← Volver</button>
+      
+      <h2>📜 Política de Privacidad</h2>
+      
+      <div style="margin-top:20px;line-height:1.8;color:#4a5568;">
+        <h3 style="margin-top:20px;margin-bottom:10px;">1. Información que recopilamos</h3>
+        <p>Twivo recopila la información que proporcionas al crear tu cuenta, como tu nombre de usuario y avatar. También guardamos los posts, comentarios y mensajes que envías.</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">2. Cómo usamos tu información</h3>
+        <p>Utilizamos tu información para proporcionar el servicio de Twivo, permitiéndote publicar contenido, interactuar con otros usuarios y utilizar la mensajería.</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">3. Compartir información</h3>
+        <p>Tu perfil y posts públicos son visibles para todos los usuarios de Twivo. Los mensajes privados solo son visibles entre tú y el destinatario.</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">4. Tus derechos</h3>
+        <p>Puedes eliminar tu contenido en cualquier momento. Puedes cerrar sesión y dejar de usar Twivo cuando quieras.</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">5. Seguridad</h3>
+        <p>Utilizamos Firebase para almacenar datos de forma segura. Los mensajes de chat usan PeerJS para comunicación P2P.</p>
+        
+        <p style="margin-top:20px;font-size:12px;color:#999;">Última actualización: ${new Date().toLocaleDateString()}</p>
+      </div>
+    </div>
+  `;
+}
+
+function showSecurityPolicy() {
+  postsEl.innerHTML = `
+    <div class="profile-container">
+      <button onclick="loadConfigSection()" style="margin-bottom:20px;padding:10px 20px;border:none;border-radius:12px;background:rgba(255,255,255,0.95);cursor:pointer;font-weight:600;">← Volver</button>
+      
+      <h2>🔒 Seguridad y Datos</h2>
+      
+      <div style="margin-top:20px;line-height:1.8;color:#4a5568;">
+        <h3 style="margin-top:20px;margin-bottom:10px;">Identificación de usuario</h3>
+        <p>Cada usuario tiene un ID único almacenado localmente. Este ID verifica la propiedad de posts y mensajes sin exponer información personal.</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">Mensajería P2P</h3>
+        <p>Los chats utilizan PeerJS para comunicación directa entre usuarios. Los mensajes se guardan en Firebase como respaldo, pero la comunicación en tiempo real es peer-to-peer.</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">Almacenamiento de datos</h3>
+        <p>• Posts y comentarios: Firebase Realtime Database<br>
+        • Mensajes: Firebase + PeerJS<br>
+        • Perfil y preferencias: Firebase + LocalStorage</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">Permisos</h3>
+        <p>• Notificaciones: Para recibir alertas de mensajes y actividad<br>
+        • Cámara/Micrófono: Para videollamadas (solo cuando las inicies)<br>
+        • Archivos: Para enviar imágenes y audio en chats</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">Eliminar datos</h3>
+        <p>Puedes eliminar tus posts, comentarios y mensajes en cualquier momento. Al cerrar sesión, los datos locales se borran.</p>
+      </div>
+    </div>
+  `;
+}
+
+window.loadConfigSection = loadConfigSection;
 
 // Sección de notificaciones
 function loadNotificationsSection() {
@@ -1787,11 +2023,18 @@ function openChat(username) {
     const chatContainer = document.createElement('div');
     chatContainer.className = 'chat-container';
     chatContainer.innerHTML = `
-      <h3 style="margin-bottom:16px;">💬 Chat con ${username}</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3>💬 Chat con ${username}</h3>
+        <div style="display:flex;gap:8px;">
+          <button id="voiceCallBtn" style="padding:10px 16px;border:none;border-radius:12px;background:linear-gradient(135deg, #10b981 0%, #059669 100%);color:#fff;cursor:pointer;font-weight:600;">📞 Llamar</button>
+          <button id="videoCallBtn" style="padding:10px 16px;border:none;border-radius:12px;background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);color:#fff;cursor:pointer;font-weight:600;">📹 Video</button>
+        </div>
+      </div>
       <div class="chat-messages" id="chatMessages"></div>
       <div class="chat-input-container">
-        <input type="file" id="fileInput" accept="image/*,audio/*" style="display:none;" />
+        <input type="file" id="fileInput" accept="image/*" style="display:none;" />
         <button onclick="document.getElementById('fileInput').click()" style="padding:12px;border:none;border-radius:12px;background:#e2e8f0;cursor:pointer;">📎</button>
+        <button id="audioRecordBtn" class="audio-recorder-btn">🎤</button>
         <input type="text" id="chatInput" class="chat-input" placeholder="Escribe un mensaje..." />
         <button id="sendChatBtn" class="chat-send-btn">Enviar</button>
       </div>
@@ -1815,6 +2058,13 @@ function openChat(username) {
       }
     };
     
+    // Configurar grabación de audio
+    document.getElementById('audioRecordBtn').onclick = () => toggleAudioRecording(username, otherPeerId);
+    
+    // Configurar llamadas
+    document.getElementById('voiceCallBtn').onclick = () => startCall(username, otherPeerId, false);
+    document.getElementById('videoCallBtn').onclick = () => startCall(username, otherPeerId, true);
+    
     // Conectar con peer si no está conectado
     if (!activeConnections[otherPeerId]) {
       const conn = peer.connect(otherPeerId);
@@ -1836,7 +2086,9 @@ function loadChatMessages(username) {
     
     const messages = [];
     snap.forEach(ch => {
-      messages.push(ch.val());
+      const msg = ch.val();
+      msg.id = ch.key;
+      messages.push(msg);
     });
     
     messages.sort((a, b) => a.timestamp - b.timestamp);
@@ -1844,6 +2096,7 @@ function loadChatMessages(username) {
     messages.forEach(msg => {
       const msgDiv = document.createElement('div');
       msgDiv.className = `chat-message ${msg.from === currentUser.username ? 'own' : ''}`;
+      msgDiv.style.position = 'relative';
       
       let content = escapeHtml(msg.text || '');
       
@@ -1853,7 +2106,11 @@ function loadChatMessages(username) {
         content = `<audio controls class="chat-audio" src="${msg.media}"></audio>`;
       }
       
+      const deleteBtn = msg.fromUserId === currentUserId ? 
+        `<div class="chat-message-actions"><button class="delete-message-btn" onclick="deleteMessage('${chatId}', '${msg.id}')">🗑️</button></div>` : '';
+      
       msgDiv.innerHTML = `
+        ${deleteBtn}
         <div class="chat-bubble">
           ${content}
           <div style="font-size:10px;opacity:0.7;margin-top:4px;">${new Date(msg.timestamp).toLocaleTimeString()}</div>
@@ -1868,6 +2125,13 @@ function loadChatMessages(username) {
   });
 }
 
+window.deleteMessage = function(chatId, messageId) {
+  if (confirm('¿Eliminar este mensaje?')) {
+    const messageRef = ref(db, `chats/${chatId}/messages/${messageId}`);
+    set(messageRef, null);
+  }
+};
+
 // Enviar mensaje de chat
 function sendChatMessage(toUsername, toPeerId) {
   const input = document.getElementById('chatInput');
@@ -1877,6 +2141,7 @@ function sendChatMessage(toUsername, toPeerId) {
   
   const messageData = {
     from: currentUser.username,
+    fromUserId: currentUserId,
     to: toUsername,
     text: text,
     type: 'text',
@@ -1887,7 +2152,11 @@ function sendChatMessage(toUsername, toPeerId) {
   const chatId = generateChatId(currentUser.username, toUsername);
   const messagesRef = ref(db, `chats/${chatId}/messages`);
   const newMessageRef = push(messagesRef);
-  set(newMessageRef, messageData);
+  
+  set(newMessageRef, {
+    ...messageData,
+    id: newMessageRef.key
+  });
   
   // Enviar por PeerJS
   if (activeConnections[toPeerId]) {
@@ -1907,6 +2176,7 @@ function sendMediaMessage(file, toUsername, toPeerId) {
     
     const messageData = {
       from: currentUser.username,
+      fromUserId: currentUserId,
       to: toUsername,
       text: '',
       type: type,
@@ -1918,7 +2188,11 @@ function sendMediaMessage(file, toUsername, toPeerId) {
     const chatId = generateChatId(currentUser.username, toUsername);
     const messagesRef = ref(db, `chats/${chatId}/messages`);
     const newMessageRef = push(messagesRef);
-    set(newMessageRef, messageData);
+    
+    set(newMessageRef, {
+      ...messageData,
+      id: newMessageRef.key
+    });
     
     // Enviar por PeerJS
     if (activeConnections[toPeerId]) {
@@ -1928,6 +2202,217 @@ function sendMediaMessage(file, toUsername, toPeerId) {
   
   reader.readAsDataURL(file);
 }
+
+// Grabación de audio
+function toggleAudioRecording(username, toPeerId) {
+  const btn = document.getElementById('audioRecordBtn');
+  
+  if (audioRecorder && audioRecorder.state === 'recording') {
+    // Detener grabación
+    audioRecorder.stop();
+    btn.classList.remove('recording');
+    btn.innerHTML = '🎤';
+  } else {
+    // Iniciar grabación
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        audioRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        
+        audioRecorder.ondataavailable = (e) => {
+          audioChunks.push(e.data);
+        };
+        
+        audioRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          
+          reader.onload = () => {
+            const base64 = reader.result;
+            
+            const messageData = {
+              from: currentUser.username,
+              fromUserId: currentUserId,
+              to: username,
+              text: '🎤 Mensaje de voz',
+              type: 'audio',
+              media: base64,
+              timestamp: Date.now()
+            };
+            
+            // Guardar en Firebase
+            const chatId = generateChatId(currentUser.username, username);
+            const messagesRef = ref(db, `chats/${chatId}/messages`);
+            const newMessageRef = push(messagesRef);
+            
+            set(newMessageRef, {
+              ...messageData,
+              id: newMessageRef.key
+            });
+            
+            // Enviar por PeerJS
+            if (activeConnections[toPeerId]) {
+              activeConnections[toPeerId].send(messageData);
+            }
+          };
+          
+          reader.readAsDataURL(audioBlob);
+          
+          // Detener el stream
+          stream.getTracks().forEach(track => track.stop());
+        };
+        
+        audioRecorder.start();
+        btn.classList.add('recording');
+        btn.innerHTML = '⏹️';
+      })
+      .catch(err => {
+        alert('No se pudo acceder al micrófono');
+        console.error(err);
+      });
+  }
+}
+
+// Iniciar llamada
+function startCall(username, toPeerId, video) {
+  const constraints = {
+    audio: true,
+    video: video
+  };
+  
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(stream => {
+      localStream = stream;
+      
+      // Crear UI de llamada
+      showCallUI(username, true, video);
+      
+      // Realizar llamada
+      currentCall = peer.call(toPeerId, stream);
+      
+      currentCall.on('stream', (remoteStream) => {
+        showRemoteStream(remoteStream, video);
+      });
+      
+      currentCall.on('close', () => {
+        endCall();
+      });
+    })
+    .catch(err => {
+      alert('No se pudo acceder a la cámara/micrófono');
+      console.error(err);
+    });
+}
+
+// Manejar llamada entrante
+function handleIncomingCall(call) {
+  const isVideo = call.metadata?.video || false;
+  
+  showCallUI(call.peer.replace('twivo_', ''), false, isVideo);
+  
+  document.getElementById('answerCallBtn').onclick = () => {
+    const constraints = {
+      audio: true,
+      video: isVideo
+    };
+    
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(stream => {
+        localStream = stream;
+        currentCall = call;
+        
+        call.answer(stream);
+        
+        call.on('stream', (remoteStream) => {
+          showRemoteStream(remoteStream, isVideo);
+        });
+        
+        call.on('close', () => {
+          endCall();
+        });
+      })
+      .catch(err => {
+        alert('No se pudo acceder a la cámara/micrófono');
+        console.error(err);
+        call.close();
+      });
+  };
+  
+  document.getElementById('declineCallBtn').onclick = () => {
+    call.close();
+    document.getElementById('callContainer')?.remove();
+  };
+}
+
+// Mostrar UI de llamada
+function showCallUI(username, isOutgoing, isVideo) {
+  const callDiv = document.createElement('div');
+  callDiv.id = 'callContainer';
+  callDiv.className = 'call-container';
+  
+  if (isOutgoing) {
+    callDiv.innerHTML = `
+      <h2 style="color:#fff;margin-bottom:20px;">${isVideo ? '📹' : '📞'} Llamando a ${username}...</h2>
+      <video id="localVideo" class="call-video" autoplay muted playsinline></video>
+      <video id="remoteVideo" class="call-video" autoplay playsinline style="display:none;"></video>
+      <div class="call-controls">
+        <button class="call-btn decline" onclick="endCall()">📵</button>
+      </div>
+    `;
+  } else {
+    callDiv.innerHTML = `
+      <h2 style="color:#fff;margin-bottom:20px;">${isVideo ? '📹' : '📞'} ${username} te está llamando...</h2>
+      <div class="call-controls">
+        <button id="answerCallBtn" class="call-btn answer">📞</button>
+        <button id="declineCallBtn" class="call-btn decline">📵</button>
+      </div>
+    `;
+  }
+  
+  document.body.appendChild(callDiv);
+  
+  if (isOutgoing && localStream) {
+    const localVideo = document.getElementById('localVideo');
+    if (localVideo) {
+      localVideo.srcObject = localStream;
+    }
+  }
+}
+
+// Mostrar stream remoto
+function showRemoteStream(stream, isVideo) {
+  const remoteVideo = document.getElementById('remoteVideo');
+  const localVideo = document.getElementById('localVideo');
+  
+  if (remoteVideo) {
+    remoteVideo.srcObject = stream;
+    remoteVideo.style.display = 'block';
+    
+    if (localVideo && isVideo) {
+      localVideo.style.maxWidth = '200px';
+      localVideo.style.position = 'absolute';
+      localVideo.style.bottom = '20px';
+      localVideo.style.right = '20px';
+    }
+  }
+}
+
+// Finalizar llamada
+function endCall() {
+  if (currentCall) {
+    currentCall.close();
+    currentCall = null;
+  }
+  
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+  
+  document.getElementById('callContainer')?.remove();
+}
+
+window.endCall = endCall;
 </script>
 </body>
   </html>
