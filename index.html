@@ -448,13 +448,78 @@
     margin-bottom:8px;
     display:inline-block;
   }
+
+  /* EXPLORAR SECTION */
+  .explore-search {
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:20px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.08);
+    animation:fadeInUp 0.6s ease-out;
+  }
+
+  .explore-search input {
+    width:100%;
+    padding:14px 16px;
+    border-radius:12px;
+    border:2px solid #e2e8f0;
+    font-size:15px;
+    margin-bottom:16px;
+  }
+
+  .explore-tabs {
+    display:flex;
+    gap:12px;
+  }
+
+  .explore-tab {
+    flex:1;
+    padding:12px;
+    border:none;
+    border-radius:12px;
+    background:rgba(102, 126, 234, 0.1);
+    color:#667eea;
+    cursor:pointer;
+    font-weight:600;
+    transition:all .3s;
+  }
+
+  .explore-tab.active {
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+    box-shadow:0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  .explore-results {
+    margin-top:20px;
+  }
+
+  .user-result {
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    padding:16px;
+    border-radius:16px;
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    cursor:pointer;
+    transition:all .3s;
+    border:1px solid rgba(255,255,255,0.3);
+  }
+
+  .user-result:hover {
+    transform:translateY(-2px);
+    box-shadow:0 8px 24px rgba(0,0,0,0.1);
+  }
 </style>
 </head>
 <body>
 <div id="leftbar">
   <button data-sec="inicio">Inicio</button>
-  <button data-sec="descubre">Descubre</button>
-  <button data-sec="popular">Popular</button>
+  <button data-sec="explorar">Explorar</button>
   <button data-sec="siguiendo">Siguiendo</button>
   <button data-sec="perfil">Perfil</button>
 </div>
@@ -708,7 +773,7 @@ function viewPostDetail(postId) {
     const backBtn = document.createElement('button');
     backBtn.textContent = '← Volver';
     backBtn.style.cssText = 'margin-bottom:20px;padding:10px 20px;border:none;border-radius:12px;background:rgba(255,255,255,0.95);cursor:pointer;font-weight:600;';
-    backBtn.onclick = () => loadSection('descubre');
+    backBtn.onclick = () => loadSection('explorar');
     postsEl.appendChild(backBtn);
     
     // Post principal
@@ -757,6 +822,7 @@ function addComment(postId) {
   
   set(newCommentRef, {
     user: currentUser.username,
+    userId: currentUserId,
     avatar: currentUser.avatar,
     text: txt,
     timestamp: t
@@ -811,7 +877,8 @@ function loadComments(postId) {
       commentDiv.className = 'post';
       const avatar = comment.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${comment.user}`;
       
-      const isOwner = currentUser.username === comment.user;
+      // Verificar si es dueño del comentario usando userId
+      const isOwner = comment.userId && comment.userId === currentUserId;
       const deleteBtn = isOwner ? `<span onclick="deleteComment('${postId}', '${key}')" style="color:#ef4444;cursor:pointer;font-size:14px;margin-left:auto;">🗑️</span>` : '';
       
       commentDiv.innerHTML = `
@@ -882,6 +949,12 @@ function loadSection(sec) {
     return;
   }
 
+  if (sec === 'explorar') {
+    loadExplorerSection();
+    return;
+  }
+
+  // Sección de Inicio
   const postsRef = ref(db,'xposts');
   const postsQuery = query(postsRef, limitToLast(100));
 
@@ -893,14 +966,151 @@ function loadSection(sec) {
       arr.push([ch.key, ch.val()]);
     });
 
-    // Ordenar por fecha
-    if(sec==='popular') arr.sort((a,b)=>(b[1].likes||0)-(a[1].likes||0));
-    else {
-      arr.sort((a, b) => b[1].timestamp - a[1].timestamp);
-    }
+    arr.sort((a, b) => b[1].timestamp - a[1].timestamp);
 
     arr.forEach(([k,p])=>postsEl.appendChild(renderPost(k,p)));
   });
+}
+
+function loadExplorerSection() {
+  postsEl.innerHTML = `
+    <div class="explore-search">
+      <h2 style="margin-bottom:16px;font-size:24px;">🔍 Explorar</h2>
+      <input type="text" id="searchInput" placeholder="Buscar usuarios o posts..." />
+      <div class="explore-tabs">
+        <button class="explore-tab active" data-filter="recientes">📅 Recientes</button>
+        <button class="explore-tab" data-filter="tendencias">🔥 Tendencias</button>
+      </div>
+    </div>
+    <div class="explore-results" id="exploreResults"></div>
+  `;
+
+  let currentFilter = 'recientes';
+  
+  // Configurar tabs
+  document.querySelectorAll('.explore-tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.explore-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentFilter = tab.dataset.filter;
+      performSearch(document.getElementById('searchInput').value.trim(), currentFilter);
+    };
+  });
+
+  // Configurar búsqueda
+  const searchInput = document.getElementById('searchInput');
+  let searchTimeout;
+  
+  searchInput.oninput = (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      performSearch(e.target.value.trim(), currentFilter);
+    }, 300);
+  };
+
+  // Cargar resultados iniciales
+  performSearch('', currentFilter);
+}
+
+function performSearch(searchTerm, filter) {
+  const resultsContainer = document.getElementById('exploreResults');
+  if (!resultsContainer) return;
+
+  resultsContainer.innerHTML = '<div style="text-align:center;padding:20px;">Buscando...</div>';
+
+  const postsRef = ref(db, 'xposts');
+  const postsQuery = query(postsRef, limitToLast(100));
+
+  onValue(postsQuery, (snap) => {
+    resultsContainer.innerHTML = '';
+    
+    const posts = [];
+    const users = new Set();
+    
+    snap.forEach(ch => {
+      const post = ch.val();
+      posts.push([ch.key, post]);
+      users.add(post.user);
+    });
+
+    // Si hay término de búsqueda
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      
+      // Buscar usuarios
+      const matchingUsers = Array.from(users).filter(user => 
+        user.toLowerCase().includes(searchLower)
+      );
+
+      if (matchingUsers.length > 0) {
+        const usersSection = document.createElement('div');
+        usersSection.innerHTML = '<h3 style="margin-bottom:12px;font-size:18px;">👤 Usuarios</h3>';
+        resultsContainer.appendChild(usersSection);
+
+        matchingUsers.forEach(username => {
+          const userProfileRef = ref(db, `userProfiles/${username}`);
+          onValue(userProfileRef, (userSnap) => {
+            const profile = userSnap.val();
+            const avatar = profile?.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${username}`;
+            
+            const userResult = document.createElement('div');
+            userResult.className = 'user-result';
+            userResult.innerHTML = `
+              <img src="${avatar}" style="width:48px;height:48px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.1);" />
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:16px;">${username}</div>
+              </div>
+              <span style="color:#667eea;font-size:14px;">Ver perfil →</span>
+            `;
+            userResult.onclick = () => viewUserProfile(username);
+            resultsContainer.appendChild(userResult);
+          }, { onlyOnce: true });
+        });
+      }
+
+      // Buscar posts
+      const matchingPosts = posts.filter(([key, post]) => 
+        post.text.toLowerCase().includes(searchLower) ||
+        post.user.toLowerCase().includes(searchLower)
+      );
+
+      if (matchingPosts.length > 0) {
+        const postsSection = document.createElement('div');
+        postsSection.innerHTML = '<h3 style="margin:20px 0 12px 0;font-size:18px;">💬 Posts</h3>';
+        resultsContainer.appendChild(postsSection);
+
+        // Ordenar según filtro
+        if (filter === 'tendencias') {
+          matchingPosts.sort((a, b) => (b[1].likes || 0) - (a[1].likes || 0));
+        } else {
+          matchingPosts.sort((a, b) => b[1].timestamp - a[1].timestamp);
+        }
+
+        matchingPosts.forEach(([k, p]) => {
+          resultsContainer.appendChild(renderPost(k, p));
+        });
+      }
+
+      if (matchingUsers.length === 0 && matchingPosts.length === 0) {
+        resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">No se encontraron resultados para "' + escapeHtml(searchTerm) + '"</div>';
+      }
+    } else {
+      // Sin búsqueda, mostrar todos los posts según filtro
+      const postsSection = document.createElement('div');
+      postsSection.innerHTML = `<h3 style="margin-bottom:12px;font-size:18px;">${filter === 'tendencias' ? '🔥 Tendencias' : '📅 Recientes'}</h3>`;
+      resultsContainer.appendChild(postsSection);
+
+      if (filter === 'tendencias') {
+        posts.sort((a, b) => (b[1].likes || 0) - (a[1].likes || 0));
+      } else {
+        posts.sort((a, b) => b[1].timestamp - a[1].timestamp);
+      }
+
+      posts.slice(0, 20).forEach(([k, p]) => {
+        resultsContainer.appendChild(renderPost(k, p));
+      });
+    }
+  }, { onlyOnce: true });
 }
 
 function loadFollowingSection() {
@@ -962,7 +1172,8 @@ function saveProfile() {
   currentUser = {
     username: name,
     avatar: newAvatar,
-    banner: newBanner
+    banner: newBanner,
+    userId: currentUserId
   };
   
   localStorage.setItem('xchat_user', JSON.stringify(currentUser));
@@ -973,15 +1184,16 @@ function saveProfile() {
     username: name,
     avatar: newAvatar,
     banner: newBanner,
+    userId: currentUserId,
     updatedAt: Date.now()
   });
   
-  // Actualizar todos los posts del usuario
+  // Actualizar todos los posts del usuario usando userId
   const postsRef = ref(db, 'xposts');
   onValue(postsRef, (snap) => {
     snap.forEach((childSnap) => {
       const post = childSnap.val();
-      if (post.user === oldUsername) {
+      if (post.userId === currentUserId) {
         const postRef = ref(db, `xposts/${childSnap.key}`);
         runTransaction(postRef, (p) => {
           if (p) {
@@ -991,6 +1203,26 @@ function saveProfile() {
           return p;
         });
       }
+    });
+  }, { onlyOnce: true });
+  
+  // Actualizar comentarios del usuario usando userId
+  const allCommentsRef = ref(db, 'comments');
+  onValue(allCommentsRef, (snap) => {
+    snap.forEach((postSnap) => {
+      postSnap.forEach((commentSnap) => {
+        const comment = commentSnap.val();
+        if (comment.userId === currentUserId) {
+          const commentRef = ref(db, `comments/${postSnap.key}/${commentSnap.key}`);
+          runTransaction(commentRef, (c) => {
+            if (c) {
+              c.user = name;
+              c.avatar = newAvatar;
+            }
+            return c;
+          });
+        }
+      });
     });
   }, { onlyOnce: true });
   
