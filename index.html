@@ -725,6 +725,14 @@
     cursor:pointer;
     font-size:12px;
   }
+
+  .verified-badge, .owner-badge {
+    display:inline-block;
+    width:18px;
+    height:18px;
+    margin-left:4px;
+    vertical-align:middle;
+  }
 </style>
 </head>
 <body>
@@ -756,7 +764,7 @@
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-import { getDatabase, ref, push, set, onValue, limitToLast, query, runTransaction } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+import { getDatabase, ref, push, set, onValue, limitToLast, query, runTransaction, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyATTtOEPHOi3lBiM9CcgzkCN-MSK50RjY4",
@@ -789,6 +797,44 @@ function getUserId() {
 }
 
 const currentUserId = getUserId();
+
+// Sistema de Owner
+const OWNER_TIMESTAMP_KEY = 'twivo_owner_timestamp';
+const OWNER_USER_KEY = 'twivo_owner';
+
+function checkOwnerClaim(username, followers) {
+  const ownerTimestamp = localStorage.getItem(OWNER_TIMESTAMP_KEY);
+  const now = Date.now();
+  
+  // Si ya pasaron 5 segundos desde que se abrió la ventana de owner
+  if (ownerTimestamp && (now - parseInt(ownerTimestamp)) > 5000) {
+    return false;
+  }
+  
+  // Verificar si tiene más de 19M de seguidores
+  return followers > 19000000;
+}
+
+function claimOwner(username) {
+  localStorage.setItem(OWNER_USER_KEY, username);
+  localStorage.setItem(OWNER_TIMESTAMP_KEY, Date.now().toString());
+  
+  // Guardar en Firebase
+  const ownerRef = ref(db, 'siteOwner');
+  set(ownerRef, {
+    username: username,
+    claimedAt: Date.now()
+  });
+}
+
+function isOwner(username) {
+  const owner = localStorage.getItem(OWNER_USER_KEY);
+  return owner === username;
+}
+
+function getOwner() {
+  return localStorage.getItem(OWNER_USER_KEY);
+}
 
 // Inicializar PeerJS
 let peer = null;
@@ -944,6 +990,25 @@ function showMain() {
     
     if (!txt) return;
     
+    // Verificar claim de owner
+    if (txt === '_owner') {
+      const userRef = ref(db, `userProfiles/${currentUser.username}`);
+      const snap = await get(userRef);
+      const profile = snap.val();
+      const followers = profile?.followers || 0;
+      
+      if (checkOwnerClaim(currentUser.username, followers)) {
+        claimOwner(currentUser.username);
+        alert('¡Eres el owner de Twivo! 👑');
+        textArea.value = '';
+        return;
+      } else {
+        alert('No cumples los requisitos para ser owner.');
+        textArea.value = '';
+        return;
+      }
+    }
+    
     textArea.disabled = true;
     sendBtn.disabled = true;
     sendBtn.textContent = 'Enviando...';
@@ -980,19 +1045,28 @@ function renderPost(key, p, isDetail = false, showPinned = false) {
   const avatar = p.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${p.user}`;
   
   // Verificar si es el dueño usando el userId
-  const isOwner = p.userId && p.userId === currentUserId;
+  const isPostOwner = p.userId && p.userId === currentUserId;
+  const isSiteOwner = isOwner(currentUser.username);
   
-  const deleteBtn = isOwner ? `<span data-action="delete" data-key="${key}" style="color:#ef4444;">🗑️ Eliminar</span>` : '';
-  const pinBtn = isOwner && showPinned && !isDetail ? `<span data-action="pin" data-key="${key}" style="color:#fbbf24;">📌 ${p.pinned ? 'Desfijar' : 'Fijar'}</span>` : '';
+  const deleteBtn = (isPostOwner || isSiteOwner) ? `<span data-action="delete" data-key="${key}" style="color:#ef4444;">🗑️ Eliminar</span>` : '';
+  const pinBtn = isPostOwner && showPinned && !isDetail ? `<span data-action="pin" data-key="${key}" style="color:#fbbf24;">📌 ${p.pinned ? 'Desfijar' : 'Fijar'}</span>` : '';
   
   const pinnedBadge = p.pinned && showPinned ? '<div class="pinned-badge">📌 Post Fijado</div>' : '';
+  
+  // Badge de verificado u owner
+  let badge = '';
+  if (isOwner(p.user)) {
+    badge = '<img src="owner.png" class="owner-badge" alt="Owner" title="Owner de Twivo" />';
+  } else if (p.verified) {
+    badge = '<img src="verificado.png" class="verified-badge" alt="Verificado" title="Usuario Verificado" />';
+  }
   
   div.innerHTML = `
     ${pinnedBadge}
     <div class="meta">
       <img class="profileIcon" src="${avatar}" data-user="${p.user}" style="cursor:pointer;" />
       <div>
-        <div class="username" data-user="${p.user}" style="cursor:pointer;">${p.user}</div>
+        <div class="username" data-user="${p.user}" style="cursor:pointer;">${p.user}${badge}</div>
         <div style="font-size:12px;color:#999;">${new Date(p.timestamp).toLocaleString()}</div>
       </div>
     </div>
@@ -1022,11 +1096,11 @@ function renderPost(key, p, isDetail = false, showPinned = false) {
     content.onclick = () => viewPostDetail(key);
   }
   
-  if (isOwner && pinBtn) {
+  if (isPostOwner && pinBtn) {
     div.querySelector('[data-action="pin"]').onclick = () => togglePin(key, p.pinned);
   }
   
-  if (isOwner && deleteBtn) {
+  if (isPostOwner || isSiteOwner) {
     div.querySelector('[data-action="delete"]').onclick = () => deletePost(key);
   }
 
@@ -1190,30 +1264,41 @@ function loadComments(postId) {
     const arr = [];
     
     snap.forEach(ch => {
-      arr.push([ch.key, ch.val()]);
+      const msg = ch.val();
+      msg.id = ch.key;
+      arr.push(msg);
     });
     
-    arr.sort((a, b) => a[1].timestamp - b[1].timestamp);
+    arr.sort((a, b) => a.timestamp - b.timestamp);
     
     if (arr.length === 0) {
       container.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">No hay comentarios aún. ¡Sé el primero!</div>';
       return;
     }
     
-    arr.forEach(([key, comment]) => {
+    arr.forEach((comment) => {
       const commentDiv = document.createElement('div');
       commentDiv.className = 'post';
       const avatar = comment.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${comment.user}`;
       
-      // Verificar si es dueño del comentario usando userId
-      const isOwner = comment.userId && comment.userId === currentUserId;
-      const deleteBtn = isOwner ? `<span onclick="deleteComment('${postId}', '${key}')" style="color:#ef4444;cursor:pointer;font-size:14px;margin-left:auto;">🗑️</span>` : '';
+      // Verificar si es dueño del comentario usando userId o si es owner del sitio
+      const isCommentOwner = comment.userId && comment.userId === currentUserId;
+      const isSiteOwner = isOwner(currentUser.username);
+      const deleteBtn = (isCommentOwner || isSiteOwner) ? `<span onclick="deleteComment('${postId}', '${comment.id}')" style="color:#ef4444;cursor:pointer;font-size:14px;margin-left:auto;">🗑️</span>` : '';
+      
+      // Badge
+      let badge = '';
+      if (isOwner(comment.user)) {
+        badge = '<img src="owner.png" class="owner-badge" alt="Owner" style="width:16px;height:16px;margin-left:4px;" />';
+      } else if (comment.verified) {
+        badge = '<img src="verificado.png" class="verified-badge" alt="Verificado" style="width:16px;height:16px;margin-left:4px;" />';
+      }
       
       commentDiv.innerHTML = `
         <div class="meta">
           <img class="profileIcon" src="${avatar}" style="width:36px;height:36px;" />
           <div style="flex:1;">
-            <div class="username" style="font-size:14px;">${comment.user}</div>
+            <div class="username" style="font-size:14px;">${comment.user}${badge}</div>
             <div style="font-size:11px;color:#999;">${new Date(comment.timestamp).toLocaleString()}</div>
           </div>
           ${deleteBtn}
@@ -1226,10 +1311,10 @@ function loadComments(postId) {
 }
 
 window.deleteComment = function(postId, commentId) {
-  if (!confirm('¿Eliminar este comentario?')) return;
-  
-  const commentRef = ref(db, `comments/${postId}/${commentId}`);
-  set(commentRef, null).then(() => {
+  if (confirm('¿Eliminar este comentario?')) {
+    const commentRef = ref(db, `comments/${postId}/${commentId}`);
+    set(commentRef, null);
+    
     // Actualizar contador
     const postRef = ref(db, 'xposts/' + postId);
     runTransaction(postRef, (p) => {
@@ -1238,7 +1323,7 @@ window.deleteComment = function(postId, commentId) {
       }
       return p;
     });
-  });
+  }
 };
 
 leftbar.querySelectorAll('button').forEach(btn => {
@@ -1486,6 +1571,7 @@ function saveProfile() {
   const name = document.getElementById('editName').value.trim();
   const avatar = document.getElementById('editAvatar').value.trim();
   const banner = document.getElementById('editBanner').value.trim();
+  const allowDMFrom = document.getElementById('allowDMFrom')?.value || 'everyone';
   
   if(!name) return alert('Nombre inválido');
 
@@ -1504,12 +1590,16 @@ function saveProfile() {
   
   // Actualizar perfil en Firebase
   const userProfileRef = ref(db, `userProfiles/${name}`);
-  set(userProfileRef, {
-    username: name,
-    avatar: newAvatar,
-    banner: newBanner,
-    userId: currentUserId,
-    updatedAt: Date.now()
+  runTransaction(userProfileRef, (profile) => {
+    if (!profile) profile = {};
+    profile.username = name;
+    profile.avatar = newAvatar;
+    profile.banner = newBanner;
+    profile.userId = currentUserId;
+    profile.allowDMFrom = allowDMFrom;
+    profile.updatedAt = Date.now();
+    // Mantener followers y verified si existen
+    return profile;
   });
   
   // Actualizar todos los posts del usuario usando userId
@@ -1551,7 +1641,7 @@ function saveProfile() {
   }, { onlyOnce: true });
   
   alert('Perfil actualizado. Los cambios se aplicarán en breve.');
-  loadSection('perfil');
+  loadConfigSection();
 }
 
 function togglePin(postId, currentPinned) {
@@ -1708,9 +1798,14 @@ function toggleFollow(username) {
     // Dejar de seguir
     delete following[username];
     
-    // Eliminar de Firebase
-    const followerRef = ref(db, `followers/${username}/${currentUser.username}`);
-    set(followerRef, null);
+    // Decrementar contador
+    const userProfileRef = ref(db, `userProfiles/${username}`);
+    runTransaction(userProfileRef, (profile) => {
+      if (profile) {
+        profile.followers = (profile.followers || 1) - 1;
+      }
+      return profile;
+    });
     
     const followingRef = ref(db, `following/${currentUser.username}/${username}`);
     set(followingRef, null);
@@ -1718,12 +1813,13 @@ function toggleFollow(username) {
     // Seguir
     following[username] = true;
     
-    // Agregar a Firebase
-    const followerRef = ref(db, `followers/${username}/${currentUser.username}`);
-    set(followerRef, {
-      username: currentUser.username,
-      avatar: currentUser.avatar,
-      timestamp: Date.now()
+    // Incrementar contador
+    const userProfileRef = ref(db, `userProfiles/${username}`);
+    runTransaction(userProfileRef, (profile) => {
+      if (profile) {
+        profile.followers = (profile.followers || 0) + 1;
+      }
+      return profile;
     });
     
     const followingRef = ref(db, `following/${currentUser.username}/${username}`);
@@ -1803,45 +1899,95 @@ function createNotification(toUser, type, message, fromUser) {
 // Sección de configuración
 function loadConfigSection() {
   const u = currentUser;
-  postsEl.innerHTML = `
-    <div class="profile-container">
-      <h2>⚙️ Configuración</h2>
-      
-      <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">👤 Perfil</h3>
-      <label>Nombre de usuario:</label>
-      <input id="editName" value="${u.username}" />
-      <label>Avatar URL:</label>
-      <input id="editAvatar" value="${u.avatar || ''}" placeholder="https://..." />
-      <label>Banner URL:</label>
-      <input id="editBanner" value="${u.banner || ''}" placeholder="https://..." />
-      <button id="saveProfileBtn">Guardar cambios</button>
-      
-      <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">🔔 Notificaciones</h3>
-      <button id="enableNotifsBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;cursor:pointer;font-weight:600;margin-top:8px;">
-        Activar notificaciones del navegador
-      </button>
-      
-      <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">📜 Legal</h3>
-      <button id="privacyBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:rgba(255,255,255,0.5);cursor:pointer;font-weight:600;margin-top:8px;">
-        Política de Privacidad
-      </button>
-      <button id="securityBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:rgba(255,255,255,0.5);cursor:pointer;font-weight:600;margin-top:8px;">
-        Seguridad y Datos
-      </button>
-      
-      <button id="logoutBtn" style="margin-top:24px;width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg, #fc5c7d 0%, #6a82fb 100%);color:#fff;cursor:pointer;font-weight:600;">
-        Cerrar sesión
-      </button>
-    </div>`;
   
-  document.getElementById('saveProfileBtn').onclick = saveProfile;
-  document.getElementById('logoutBtn').onclick = logout;
-  document.getElementById('enableNotifsBtn').onclick = () => {
-    requestNotificationPermission();
-    alert('Permiso solicitado. Por favor, acepta las notificaciones en tu navegador.');
-  };
-  document.getElementById('privacyBtn').onclick = showPrivacyPolicy;
-  document.getElementById('securityBtn').onclick = showSecurityPolicy;
+  // Obtener configuración actual
+  const userProfileRef = ref(db, `userProfiles/${u.username}`);
+  onValue(userProfileRef, async (snap) => {
+    const profile = snap.val();
+    const allowDMFrom = profile?.allowDMFrom || 'everyone';
+    const verified = profile?.verified || false;
+    const followers = profile?.followers || 0;
+    
+    // Verificar si puede verificarse
+    const canVerify = followers >= 10000 && !verified && !isOwner(u.username);
+    
+    postsEl.innerHTML = `
+      <div class="profile-container">
+        <h2>⚙️ Configuración</h2>
+        
+        <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">👤 Perfil</h3>
+        <label>Nombre de usuario:</label>
+        <input id="editName" value="${u.username}" />
+        <label>Avatar URL:</label>
+        <input id="editAvatar" value="${u.avatar || ''}" placeholder="https://..." />
+        <label>Banner URL:</label>
+        <input id="editBanner" value="${u.banner || ''}" placeholder="https://..." />
+        
+        <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">💬 Mensajes</h3>
+        <label>¿Quién puede enviarte mensajes?</label>
+        <select id="allowDMFrom" style="width:100%;padding:12px;margin:8px 0;border-radius:12px;border:2px solid #e2e8f0;font-size:15px;">
+          <option value="everyone" ${allowDMFrom === 'everyone' ? 'selected' : ''}>Todo el mundo</option>
+          <option value="followers" ${allowDMFrom === 'followers' ? 'selected' : ''}>Solo quienes me siguen</option>
+        </select>
+        
+        <button id="saveProfileBtn">Guardar cambios</button>
+        
+        ${canVerify ? `
+          <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">✅ Verificación</h3>
+          <p style="margin-bottom:12px;color:#666;">Tienes ${followers.toLocaleString()} seguidores. ¡Puedes verificar tu cuenta!</p>
+          <button id="verifyBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg, #10b981 0%, #059669 100%);color:#fff;cursor:pointer;font-weight:600;margin-top:8px;">
+            ✅ Verificar mi cuenta
+          </button>
+        ` : verified ? `
+          <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">✅ Verificado</h3>
+          <p style="color:#10b981;">Tu cuenta está verificada ✓</p>
+        ` : ''}
+        
+        <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">🔔 Notificaciones</h3>
+        <button id="enableNotifsBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;cursor:pointer;font-weight:600;margin-top:8px;">
+          Activar notificaciones del navegador
+        </button>
+        
+        <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">📜 Legal</h3>
+        <button id="privacyBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:rgba(255,255,255,0.5);cursor:pointer;font-weight:600;margin-top:8px;">
+          Política de Privacidad
+        </button>
+        <button id="securityBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:rgba(255,255,255,0.5);cursor:pointer;font-weight:600;margin-top:8px;">
+          Seguridad y Datos
+        </button>
+        
+        <button id="logoutBtn" style="margin-top:24px;width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg, #fc5c7d 0%, #6a82fb 100%);color:#fff;cursor:pointer;font-weight:600;">
+          Cerrar sesión
+        </button>
+      </div>`;
+    
+    document.getElementById('saveProfileBtn').onclick = saveProfile;
+    document.getElementById('logoutBtn').onclick = logout;
+    document.getElementById('enableNotifsBtn').onclick = () => {
+      requestNotificationPermission();
+      alert('Permiso solicitado. Por favor, acepta las notificaciones en tu navegador.');
+    };
+    document.getElementById('privacyBtn').onclick = showPrivacyPolicy;
+    document.getElementById('securityBtn').onclick = showSecurityPolicy;
+    
+    if (canVerify) {
+      document.getElementById('verifyBtn').onclick = verifyAccount;
+    }
+  }, { onlyOnce: true });
+}
+
+async function verifyAccount() {
+  const userProfileRef = ref(db, `userProfiles/${currentUser.username}`);
+  
+  await runTransaction(userProfileRef, (profile) => {
+    if (profile) {
+      profile.verified = true;
+    }
+    return profile;
+  });
+  
+  alert('¡Tu cuenta ha sido verificada! ✓');
+  loadConfigSection();
 }
 
 function showPrivacyPolicy() {
@@ -2415,4 +2561,4 @@ function endCall() {
 window.endCall = endCall;
 </script>
 </body>
-  </html>
+</html>
