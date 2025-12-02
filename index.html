@@ -2056,10 +2056,7 @@ window.loadConfigSection = loadConfigSection;
 function loadNotificationsSection() {
   postsEl.innerHTML = '<h2 style="margin-bottom:20px;font-size:24px;">🔔 Notificaciones</h2>';
   
-  // Primero cargar desde localStorage
   const localNotifs = JSON.parse(localStorage.getItem('twivo_notifications') || '[]');
-  
-  // Luego cargar desde Firebase (nuevas)
   const notifsRef = ref(db, `notifications/${currentUser.username}`);
   
   onValue(notifsRef, (snap) => {
@@ -2071,7 +2068,6 @@ function loadNotificationsSection() {
       });
     }
     
-    // Combinar notificaciones
     const allNotifs = [...firebaseNotifs, ...localNotifs];
     
     if (allNotifs.length === 0) {
@@ -2103,7 +2099,6 @@ function loadNotificationsSection() {
       `;
       
       notifDiv.onclick = () => {
-        // Marcar como leída en localStorage
         if (notif.id) {
           const localNotifs = JSON.parse(localStorage.getItem('twivo_notifications') || '[]');
           const index = localNotifs.findIndex(n => n.id === notif.id);
@@ -2113,7 +2108,6 @@ function loadNotificationsSection() {
           }
         }
         
-        // Navegar según el tipo
         if (notif.type === 'message') {
           openChat(notif.from);
         } else if (notif.type === 'follow') {
@@ -2122,9 +2116,18 @@ function loadNotificationsSection() {
       };
       
       container.appendChild(notifDiv);
+
+      // 🔥 AUTO-ELIMINAR DESPUÉS DE 30s (HTML + localStorage)
+      setTimeout(() => {
+        notifDiv.remove(); // quitar del HTML
+        
+        const stored = JSON.parse(localStorage.getItem('twivo_notifications') || '[]');
+        const filtered = stored.filter(n => n.timestamp !== notif.timestamp);
+        localStorage.setItem('twivo_notifications', JSON.stringify(filtered));
+      }, 30000);
+
     });
     
-    // Reemplazar el contenido
     const existingContainer = postsEl.querySelector('div:not(h2)');
     if (existingContainer) {
       existingContainer.remove();
