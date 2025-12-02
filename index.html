@@ -1053,20 +1053,20 @@ function renderPost(key, p, isDetail = false, showPinned = false) {
   
   const pinnedBadge = p.pinned && showPinned ? '<div class="pinned-badge">📌 Post Fijado</div>' : '';
   
-  // Badge de verificado u owner
-  let badge = '';
-  if (isOwner(p.user)) {
-    badge = '<img src="owner.png" class="owner-badge" alt="Owner" title="Owner de Twivo" />';
-  } else if (p.verified) {
-    badge = '<img src="verificado.png" class="verified-badge" alt="Verificado" title="Usuario Verificado" />';
-  }
+  // Obtener badge del usuario desde Firebase
+  getUserBadge(p.user).then(badge => {
+    const usernameEl = div.querySelector('.username');
+    if (usernameEl && badge) {
+      usernameEl.innerHTML = `${p.user}${badge}`;
+    }
+  });
   
   div.innerHTML = `
     ${pinnedBadge}
     <div class="meta">
       <img class="profileIcon" src="${avatar}" data-user="${p.user}" style="cursor:pointer;" />
       <div>
-        <div class="username" data-user="${p.user}" style="cursor:pointer;">${p.user}${badge}</div>
+        <div class="username" data-user="${p.user}" style="cursor:pointer;">${p.user}</div>
         <div style="font-size:12px;color:#999;">${new Date(p.timestamp).toLocaleString()}</div>
       </div>
     </div>
@@ -1105,6 +1105,27 @@ function renderPost(key, p, isDetail = false, showPinned = false) {
   }
 
   return div;
+}
+
+// Función para obtener badge del usuario
+async function getUserBadge(username) {
+  if (isOwner(username)) {
+    return '<img src="owner.png" class="owner-badge" alt="Owner" title="Owner de Twivo" />';
+  }
+  
+  try {
+    const userProfileRef = ref(db, `userProfiles/${username}`);
+    const snap = await get(userProfileRef);
+    const profile = snap.val();
+    
+    if (profile?.verified) {
+      return '<img src="verificado.png" class="verified-badge" alt="Verificado" title="Usuario Verificado" />';
+    }
+  } catch (e) {
+    console.error('Error obteniendo badge:', e);
+  }
+  
+  return '';
 }
 
 function escapeHtml(s) {
@@ -1276,7 +1297,7 @@ function loadComments(postId) {
       return;
     }
     
-    arr.forEach((comment) => {
+    arr.forEach(async (comment) => {
       const commentDiv = document.createElement('div');
       commentDiv.className = 'post';
       const avatar = comment.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${comment.user}`;
@@ -1286,13 +1307,8 @@ function loadComments(postId) {
       const isSiteOwner = isOwner(currentUser.username);
       const deleteBtn = (isCommentOwner || isSiteOwner) ? `<span onclick="deleteComment('${postId}', '${comment.id}')" style="color:#ef4444;cursor:pointer;font-size:14px;margin-left:auto;">🗑️</span>` : '';
       
-      // Badge
-      let badge = '';
-      if (isOwner(comment.user)) {
-        badge = '<img src="owner.png" class="owner-badge" alt="Owner" style="width:16px;height:16px;margin-left:4px;" />';
-      } else if (comment.verified) {
-        badge = '<img src="verificado.png" class="verified-badge" alt="Verificado" style="width:16px;height:16px;margin-left:4px;" />';
-      }
+      // Obtener badge
+      const badge = await getUserBadge(comment.user);
       
       commentDiv.innerHTML = `
         <div class="meta">
@@ -2561,4 +2577,4 @@ function endCall() {
 window.endCall = endCall;
 </script>
 </body>
-</html>
+  </html>
