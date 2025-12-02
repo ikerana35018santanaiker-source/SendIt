@@ -1879,6 +1879,13 @@ function createNotification(toUser, type, message, fromUser) {
           localNotifs.shift();
         }
         localStorage.setItem('twivo_notifications', JSON.stringify(localNotifs));
+        // AUTO-ELIMINAR NOTIFICACIÓN DESPUÉS DE 30s
+setTimeout(() => {
+  const notifs = JSON.parse(localStorage.getItem('twivo_notifications') || '[]');
+  const filtered = notifs.filter(n => n.timestamp !== notifData.timestamp);
+  localStorage.setItem('twivo_notifications', JSON.stringify(filtered));
+}, 30000);
+
       }
     }, 2000); // 2 segundos para que el usuario la vea en Firebase
   });
