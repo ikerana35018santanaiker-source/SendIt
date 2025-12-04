@@ -733,6 +733,62 @@
     margin-left:4px;
     vertical-align:middle;
   }
+
+  /* AUTH TABS */
+  .auth-tab {
+    background:rgba(255,255,255,0.3);
+    color:#666;
+    transition:all .3s;
+  }
+
+  .auth-tab.active {
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+  }
+
+  /* ACCOUNT SELECTOR */
+  .account-selector-overlay {
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    background:rgba(0,0,0,0.7);
+    backdrop-filter:blur(10px);
+    z-index:9999;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .account-selector {
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:24px;
+    padding:32px;
+    max-width:400px;
+    width:90%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.3);
+  }
+
+  .account-option {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:16px;
+    margin:8px 0;
+    border-radius:12px;
+    background:rgba(255,255,255,0.5);
+    cursor:pointer;
+    transition:all .3s;
+    border:2px solid transparent;
+  }
+
+  .account-option:hover {
+    background:linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border-color:#667eea;
+    transform:translateX(4px);
+  }
 </style>
 </head>
 <body>
@@ -748,9 +804,24 @@
 
 <div id="app">
   <div id="authBox">
-    <h2>Twivo — Login</h2>
-    <input id="user" placeholder="Nombre de usuario" />
-    <button id="loginBtn">Entrar</button>
+    <h2>Twivo</h2>
+    <div id="authTabs" style="display:flex;gap:8px;margin-bottom:20px;">
+      <button id="loginTab" class="auth-tab active" style="flex:1;padding:10px;border:none;border-radius:12px;cursor:pointer;font-weight:600;">Iniciar Sesión</button>
+      <button id="registerTab" class="auth-tab" style="flex:1;padding:10px;border:none;border-radius:12px;cursor:pointer;font-weight:600;">Registrarse</button>
+    </div>
+    
+    <div id="loginForm">
+      <input id="loginUser" placeholder="Nombre de usuario" />
+      <input id="loginPassword" type="password" placeholder="Contraseña" />
+      <button id="loginBtn">Entrar</button>
+    </div>
+    
+    <div id="registerForm" style="display:none;">
+      <input id="registerUser" placeholder="Nombre de usuario" />
+      <input id="registerPassword" type="password" placeholder="Contraseña" />
+      <input id="registerPasswordConfirm" type="password" placeholder="Confirmar contraseña" />
+      <button id="registerBtn">Registrarse</button>
+    </div>
   </div>
 
   <div id="mainUI" style="display:none;">
@@ -1844,8 +1915,11 @@ function loadUserPosts(username) {
 }
 
 function logout() {
-  localStorage.removeItem('xchat_user');
-  location.reload();
+  if (confirm('¿Cerrar sesión?')) {
+    localStorage.removeItem('xchat_user');
+    localStorage.removeItem('twivo_user_id');
+    location.reload();
+  }
 }
 
 // Funciones de notificaciones
@@ -1879,13 +1953,6 @@ function createNotification(toUser, type, message, fromUser) {
           localNotifs.shift();
         }
         localStorage.setItem('twivo_notifications', JSON.stringify(localNotifs));
-        // AUTO-ELIMINAR NOTIFICACIÓN DESPUÉS DE 30s
-setTimeout(() => {
-  const notifs = JSON.parse(localStorage.getItem('twivo_notifications') || '[]');
-  const filtered = notifs.filter(n => n.timestamp !== notifData.timestamp);
-  localStorage.setItem('twivo_notifications', JSON.stringify(filtered));
-}, 30000);
-
       }
     }, 2000); // 2 segundos para que el usuario la vea en Firebase
   });
@@ -1956,13 +2023,19 @@ function loadConfigSection() {
           Seguridad y Datos
         </button>
         
+        <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">⚠️ Zona de Peligro</h3>
+        <button id="deleteAccountBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);color:#fff;cursor:pointer;font-weight:600;margin-top:8px;">
+          🗑️ Eliminar cuenta permanentemente
+        </button>
+        
         <button id="logoutBtn" style="margin-top:24px;width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg, #fc5c7d 0%, #6a82fb 100%);color:#fff;cursor:pointer;font-weight:600;">
-          Cerrar sesión
+          🚪 Cerrar sesión
         </button>
       </div>`;
     
     document.getElementById('saveProfileBtn').onclick = saveProfile;
     document.getElementById('logoutBtn').onclick = logout;
+    document.getElementById('deleteAccountBtn').onclick = deleteAccount;
     document.getElementById('enableNotifsBtn').onclick = () => {
       requestNotificationPermission();
       alert('Permiso solicitado. Por favor, acepta las notificaciones en tu navegador.');
@@ -1974,6 +2047,65 @@ function loadConfigSection() {
       document.getElementById('verifyBtn').onclick = verifyAccount;
     }
   }, { onlyOnce: true });
+}
+
+async function deleteAccount() {
+  const confirmed = confirm('⚠️ ADVERTENCIA: Esta acción es PERMANENTE.\n\n¿Estás seguro de que quieres eliminar tu cuenta?\n\nSe eliminará:\n- Tu perfil\n- Todos tus posts\n- Todos tus comentarios\n- Tu cuenta de inicio de sesión\n\nEsta acción NO se puede deshacer.');
+  
+  if (!confirmed) return;
+  
+  const doubleCheck = prompt('Escribe "ELIMINAR" (en mayúsculas) para confirmar:');
+  
+  if (doubleCheck !== 'ELIMINAR') {
+    return alert('Eliminación cancelada.');
+  }
+  
+  try {
+    const userId = currentUserId;
+    const username = currentUser.username;
+    
+    // Eliminar cuenta de accounts
+    const accountsRef = ref(db, 'accounts');
+    const snapshot = await get(accountsRef);
+    snapshot.forEach((child) => {
+      if (child.val().userId === userId) {
+        set(ref(db, `accounts/${child.key}`), null);
+      }
+    });
+    
+    // Eliminar perfil
+    const profileRef = ref(db, `userProfiles/${username}`);
+    await set(profileRef, null);
+    
+    // Eliminar posts
+    const postsRef = ref(db, 'xposts');
+    const postsSnap = await get(postsRef);
+    postsSnap.forEach((child) => {
+      if (child.val().userId === userId) {
+        set(ref(db, `xposts/${child.key}`), null);
+      }
+    });
+    
+    // Eliminar comentarios
+    const commentsRef = ref(db, 'comments');
+    const commentsSnap = await get(commentsRef);
+    commentsSnap.forEach((postSnap) => {
+      postSnap.forEach((commentSnap) => {
+        if (commentSnap.val().userId === userId) {
+          set(ref(db, `comments/${postSnap.key}/${commentSnap.key}`), null);
+        }
+      });
+    });
+    
+    // Limpiar localStorage
+    localStorage.clear();
+    
+    alert('Tu cuenta ha sido eliminada permanentemente.');
+    location.reload();
+  } catch (error) {
+    console.error('Error al eliminar cuenta:', error);
+    alert('Error al eliminar la cuenta. Inténtalo de nuevo.');
+  }
 }
 
 async function verifyAccount() {
@@ -2056,7 +2188,10 @@ window.loadConfigSection = loadConfigSection;
 function loadNotificationsSection() {
   postsEl.innerHTML = '<h2 style="margin-bottom:20px;font-size:24px;">🔔 Notificaciones</h2>';
   
+  // Primero cargar desde localStorage
   const localNotifs = JSON.parse(localStorage.getItem('twivo_notifications') || '[]');
+  
+  // Luego cargar desde Firebase (nuevas)
   const notifsRef = ref(db, `notifications/${currentUser.username}`);
   
   onValue(notifsRef, (snap) => {
@@ -2068,6 +2203,7 @@ function loadNotificationsSection() {
       });
     }
     
+    // Combinar notificaciones
     const allNotifs = [...firebaseNotifs, ...localNotifs];
     
     if (allNotifs.length === 0) {
@@ -2099,6 +2235,7 @@ function loadNotificationsSection() {
       `;
       
       notifDiv.onclick = () => {
+        // Marcar como leída en localStorage
         if (notif.id) {
           const localNotifs = JSON.parse(localStorage.getItem('twivo_notifications') || '[]');
           const index = localNotifs.findIndex(n => n.id === notif.id);
@@ -2108,6 +2245,7 @@ function loadNotificationsSection() {
           }
         }
         
+        // Navegar según el tipo
         if (notif.type === 'message') {
           openChat(notif.from);
         } else if (notif.type === 'follow') {
@@ -2116,18 +2254,9 @@ function loadNotificationsSection() {
       };
       
       container.appendChild(notifDiv);
-
-      // 🔥 AUTO-ELIMINAR DESPUÉS DE 30s (HTML + localStorage)
-      setTimeout(() => {
-        notifDiv.remove(); // quitar del HTML
-        
-        const stored = JSON.parse(localStorage.getItem('twivo_notifications') || '[]');
-        const filtered = stored.filter(n => n.timestamp !== notif.timestamp);
-        localStorage.setItem('twivo_notifications', JSON.stringify(filtered));
-      }, 30000);
-
     });
     
+    // Reemplazar el contenido
     const existingContainer = postsEl.querySelector('div:not(h2)');
     if (existingContainer) {
       existingContainer.remove();
@@ -2584,4 +2713,4 @@ function endCall() {
 window.endCall = endCall;
 </script>
 </body>
-  </html>
+</html>
