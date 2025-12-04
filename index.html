@@ -1079,6 +1079,51 @@ registerTab.onclick = () => {
   registerForm.style.display = "block";
 };
 
+  document.getElementById('registerBtn').onclick = async () => {
+  const uname = document.getElementById('registerUser').value.trim();
+  const pass = document.getElementById('registerPassword').value.trim();
+  const pass2 = document.getElementById('registerPasswordConfirm').value.trim();
+
+  if (!uname) return alert('Escribe un nombre de usuario.');
+  if (!pass) return alert('Escribe una contraseña.');
+  if (pass !== pass2) return alert('Las contraseñas no coinciden.');
+
+  const userId = currentUserId;
+
+  // Crear el perfil del usuario
+  await set(ref(db, `userProfiles/${uname}`), {
+    username: uname,
+    avatar: `https://api.dicebear.com/7.x/thumbs/svg?seed=${uname}`,
+    banner: "",
+    followers: 0,
+    following: 0,
+    verified: false,
+    allowDMFrom: "everyone",
+    createdAt: Date.now()
+  });
+
+  // Guardar en accounts
+  const newAccRef = push(ref(db, 'accounts'));
+  await set(newAccRef, {
+    username: uname,
+    password: pass,
+    userId: userId,
+    createdAt: Date.now()
+  });
+
+  // Crear usuario actual
+  currentUser = {
+    username: uname,
+    avatar: `https://api.dicebear.com/7.x/thumbs/svg?seed=${uname}`,
+    userId: userId
+  };
+
+  localStorage.setItem('xchat_user', JSON.stringify(currentUser));
+
+  alert('Cuenta creada correctamente.');
+  location.reload();
+};
+
 
 function showMain() {
   authBox.style.display = 'none';
