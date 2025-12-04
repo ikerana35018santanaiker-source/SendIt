@@ -739,11 +739,42 @@
     background:rgba(255,255,255,0.3);
     color:#666;
     transition:all .3s;
+    border:none;
   }
 
   .auth-tab.active {
     background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color:#fff;
+    box-shadow:0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  #authBox button {
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    margin-top:16px;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+    font-size:16px;
+    font-weight:600;
+    cursor:pointer;
+    transition:all .3s;
+    box-shadow:0 4px 15px rgba(102, 126, 234, 0.4);
+  }
+
+  #authBox button:hover {
+    transform:translateY(-2px);
+    box-shadow:0 6px 25px rgba(102, 126, 234, 0.5);
+  }
+
+  #authBox button:active {
+    transform:translateY(0);
+  }
+
+  #authBox button:disabled {
+    opacity:0.6;
+    cursor:not-allowed;
   }
 
   /* ACCOUNT SELECTOR */
@@ -870,7 +901,33 @@ function getUserId() {
 const currentUserId = getUserId();
 
 // Sistema de Owner
+const OWNER_TIMESTAMP_KEY = 'twivo_owner_timestamp';
 const OWNER_USER_KEY = 'twivo_owner';
+
+function checkOwnerClaim(username, followers) {
+  const ownerTimestamp = localStorage.getItem(OWNER_TIMESTAMP_KEY);
+  const now = Date.now();
+  
+  // Si ya pasaron 5 segundos desde que se abrió la ventana de owner
+  if (ownerTimestamp && (now - parseInt(ownerTimestamp)) > 5000) {
+    return false;
+  }
+  
+  // Verificar si tiene más de 19M de seguidores
+  return followers > 19000000;
+}
+
+function claimOwner(username) {
+  localStorage.setItem(OWNER_USER_KEY, username);
+  localStorage.setItem(OWNER_TIMESTAMP_KEY, Date.now().toString());
+  
+  // Guardar en Firebase
+  const ownerRef = ref(db, 'siteOwner');
+  set(ownerRef, {
+    username: username,
+    claimedAt: Date.now()
+  });
+}
 
 function isOwner(username) {
   const owner = localStorage.getItem(OWNER_USER_KEY);
@@ -968,25 +1025,6 @@ if (currentUser) {
   requestNotificationPermission();
 }
 
-// Solicitar permiso para notificaciones del navegador
-function requestNotificationPermission() {
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
-}
-
-// Mostrar notificación del navegador
-function showBrowserNotification(title, body) {
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, {
-      body: body,
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
-      tag: 'twivo-notification'
-    });
-  }
-}
-
 // Verificar si hay un post o usuario en la URL
 const urlParams = new URLSearchParams(window.location.search);
 const postParam = urlParams.get('post');
@@ -1034,6 +1072,25 @@ function showMain() {
     const txt = textArea.value.trim();
     
     if (!txt) return;
+    
+    // Verificar claim de owner
+    if (txt === '_owner') {
+      const userRef = ref(db, `userProfiles/${currentUser.username}`);
+      const snap = await get(userRef);
+      const profile = snap.val();
+      const followers = profile?.followers || 0;
+      
+      if (checkOwnerClaim(currentUser.username, followers)) {
+        claimOwner(currentUser.username);
+        alert('¡Eres el owner de Twivo! 👑');
+        textArea.value = '';
+        return;
+      } else {
+        alert('No cumples los requisitos para ser owner.');
+        textArea.value = '';
+        return;
+      }
+    }
     
     textArea.disabled = true;
     sendBtn.disabled = true;
@@ -2711,6 +2768,25 @@ function endCall() {
 }
 
 window.endCall = endCall;
+
+// Solicitar permiso para notificaciones del navegador
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// Mostrar notificación del navegador
+function showBrowserNotification(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, {
+      body: body,
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+      tag: 'twivo-notification'
+    });
+  }
+}
 </script>
 </body>
-</html>
+  </html>
