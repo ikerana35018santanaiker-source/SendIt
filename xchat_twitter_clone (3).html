@@ -1,0 +1,3240 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Twivo</title>
+<style>
+  /* RESET */
+  *{margin:0;padding:0;box-sizing:border-box}
+  
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#1a202c;
+    display:flex;
+    min-height:100vh;
+    position:relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(138, 43, 226, 0.3), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* LEFTBAR */
+  #leftbar{
+    width:80px;
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(10px);
+    border-right:1px solid rgba(255,255,255,0.3);
+    padding:20px 12px;
+    display:none;
+    flex-direction:column;
+    gap:8px;
+    align-items:center;
+    transition:width .3s cubic-bezier(0.4, 0, 0.2, 1);
+    position:fixed;
+    left:0;
+    top:0;
+    bottom:0;
+    z-index:100;
+    box-shadow:4px 0 24px rgba(0,0,0,0.08);
+  }
+  
+  #leftbar:hover{width:240px}
+  
+  #leftbar button{
+    background:none;
+    border:none;
+    font-size:15px;
+    font-weight:500;
+    cursor:pointer;
+    color:#4a5568;
+    width:100%;
+    text-align:left;
+    padding:14px 16px;
+    border-radius:12px;
+    transition:all .2s cubic-bezier(0.4, 0, 0.2, 1);
+    display:flex;
+    align-items:center;
+    gap:12px;
+    white-space:nowrap;
+    overflow:hidden;
+  }
+  
+  #leftbar button:hover{
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+    transform:translateX(4px);
+    box-shadow:0 4px 12px rgba(102, 126, 234, 0.3);
+  }
+
+  #leftbar button::before {
+    content: '●';
+    font-size: 20px;
+    min-width: 24px;
+  }
+
+  /* APP */
+  #app{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    max-width:680px;
+    margin:0 auto;
+    padding:20px;
+    position:relative;
+    z-index:1;
+  }
+
+  /* AUTH */
+  #authBox{
+    max-width:420px;
+    margin:80px auto;
+    padding:40px;
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:24px;
+    box-shadow:0 20px 60px rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.3);
+    animation:fadeInUp 0.6s ease-out;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity:0;
+      transform:translateY(30px);
+    }
+    to {
+      opacity:1;
+      transform:translateY(0);
+    }
+  }
+  
+  #authBox h2{
+    text-align:center;
+    margin-bottom:24px;
+    font-size:28px;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+  
+  input{
+    width:100%;
+    padding:14px 16px;
+    margin:8px 0;
+    border-radius:12px;
+    border:2px solid #e2e8f0;
+    font-size:15px;
+    transition:all .3s;
+    background:#fff;
+  }
+
+  input:focus {
+    outline:none;
+    border-color:#667eea;
+    box-shadow:0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+  
+  #authBox button{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    margin-top:16px;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+    font-size:16px;
+    font-weight:600;
+    cursor:pointer;
+    transition:all .3s;
+    box-shadow:0 4px 15px rgba(102, 126, 234, 0.4);
+  }
+
+  #authBox button:hover {
+    transform:translateY(-2px);
+    box-shadow:0 6px 25px rgba(102, 126, 234, 0.5);
+  }
+
+  #authBox button:active {
+    transform:translateY(0);
+  }
+
+  /* POSTS */
+  #composer{
+    display:flex;
+    gap:12px;
+    margin-bottom:24px;
+    padding:20px;
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:20px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.08), 0 0 0 1px rgba(255,255,255,0.3);
+    animation:fadeInUp 0.6s ease-out;
+  }
+  
+  #composer textarea{
+    flex:1;
+    min-height:80px;
+    border-radius:14px;
+    padding:14px;
+    border:2px solid #e2e8f0;
+    resize:none;
+    font-size:15px;
+    font-family:inherit;
+    transition:all .3s;
+    background:#fff;
+  }
+
+  #composer textarea:focus {
+    outline:none;
+    border-color:#667eea;
+    box-shadow:0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+  
+  #composer button{
+    padding:12px 24px;
+    border:none;
+    border-radius:14px;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+    cursor:pointer;
+    font-weight:600;
+    font-size:15px;
+    transition:all .3s;
+    height:fit-content;
+    align-self:flex-end;
+    box-shadow:0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  #composer button:hover {
+    transform:translateY(-2px);
+    box-shadow:0 6px 20px rgba(102, 126, 234, 0.4);
+  }
+
+  .post{
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    padding:20px;
+    border-radius:20px;
+    margin-bottom:16px;
+    border:1px solid rgba(255,255,255,0.3);
+    box-shadow:0 4px 20px rgba(0,0,0,0.06);
+    transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation:fadeInUp 0.4s ease-out;
+  }
+
+  .post:hover {
+    transform:translateY(-4px);
+    box-shadow:0 12px 40px rgba(0,0,0,0.12);
+  }
+  
+  .post .meta{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:12px;
+  }
+  
+  .profileIcon{
+    width:48px;
+    height:48px;
+    border-radius:50%;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    object-fit:cover;
+    border:3px solid #fff;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .username{
+    font-weight:700;
+    font-size:16px;
+    color:#1a202c;
+  }
+
+  .post > div:nth-child(2) {
+    font-size:15px;
+    line-height:1.6;
+    color:#2d3748;
+    margin-bottom:12px;
+  }
+  
+  .actions{
+    display:flex;
+    gap:24px;
+    margin-top:16px;
+    padding-top:12px;
+    border-top:1px solid #e2e8f0;
+    font-size:14px;
+    color:#718096;
+  }
+  
+  .actions span{
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 12px;
+    border-radius:8px;
+    transition:all .2s;
+    font-weight:500;
+  }
+
+  .actions span:hover {
+    background:rgba(102, 126, 234, 0.1);
+    color:#667eea;
+    transform:scale(1.05);
+  }
+
+  .post-content:hover {
+    color:#667eea;
+  }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    #leftbar {
+      width: 100%;
+      height: auto;
+      top: auto;
+      bottom: 0;
+      flex-direction: row;
+      padding: 12px;
+      justify-content: space-around;
+    }
+
+    #leftbar:hover {
+      width: 100%;
+    }
+
+    #leftbar button::before {
+      display: none;
+    }
+
+    #app {
+      padding: 20px 16px 80px 16px;
+    }
+  }
+
+  /* PROFILE SECTION */
+  .profile-container {
+    padding:32px;
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:20px;
+    border:1px solid rgba(255,255,255,0.3);
+    box-shadow:0 8px 32px rgba(0,0,0,0.1);
+    max-width:500px;
+    margin:20px auto;
+    animation:fadeInUp 0.6s ease-out;
+  }
+
+  .profile-container h2 {
+    margin-bottom:24px;
+    font-size:24px;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+  }
+
+  .profile-container label {
+    display:block;
+    margin-top:16px;
+    margin-bottom:6px;
+    font-weight:600;
+    color:#4a5568;
+    font-size:14px;
+  }
+
+  .profile-container button {
+    margin-top:16px;
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    color:#fff;
+    cursor:pointer;
+    font-weight:600;
+    font-size:15px;
+    transition:all .3s;
+  }
+
+  .profile-container button:first-of-type {
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow:0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  .profile-container button:first-of-type:hover {
+    transform:translateY(-2px);
+    box-shadow:0 6px 20px rgba(102, 126, 234, 0.4);
+  }
+
+  .profile-container button:last-of-type {
+    background:linear-gradient(135deg, #fc5c7d 0%, #6a82fb 100%);
+    box-shadow:0 4px 15px rgba(252, 92, 125, 0.3);
+  }
+
+  .profile-container button:last-of-type:hover {
+    transform:translateY(-2px);
+    box-shadow:0 6px 20px rgba(252, 92, 125, 0.4);
+  }
+
+  /* USER PROFILE VIEW */
+  .user-profile-header {
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:20px;
+    border:1px solid rgba(255,255,255,0.3);
+    box-shadow:0 8px 32px rgba(0,0,0,0.08);
+    margin-bottom:20px;
+    overflow:hidden;
+    animation:fadeInUp 0.6s ease-out;
+  }
+
+  .user-profile-banner {
+    height:150px;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    position:relative;
+  }
+
+  .user-profile-info {
+    padding:20px;
+    position:relative;
+    margin-top:-40px;
+  }
+
+  .user-profile-avatar {
+    width:80px;
+    height:80px;
+    border-radius:50%;
+    border:4px solid #fff;
+    box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    margin-bottom:12px;
+  }
+
+  .user-profile-name {
+    font-size:24px;
+    font-weight:700;
+    color:#1a202c;
+    margin-bottom:8px;
+  }
+
+  .user-profile-stats {
+    display:flex;
+    gap:20px;
+    margin-top:16px;
+    font-size:14px;
+    color:#718096;
+  }
+
+  .pinned-badge {
+    background:linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color:#1a202c;
+    padding:4px 12px;
+    border-radius:12px;
+    font-size:12px;
+    font-weight:600;
+    margin-bottom:8px;
+    display:inline-block;
+  }
+
+  /* EXPLORAR SECTION */
+  .explore-search {
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:20px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.08);
+    animation:fadeInUp 0.6s ease-out;
+  }
+
+  .explore-search input {
+    width:100%;
+    padding:14px 16px;
+    border-radius:12px;
+    border:2px solid #e2e8f0;
+    font-size:15px;
+    margin-bottom:16px;
+  }
+
+  .explore-tabs {
+    display:flex;
+    gap:12px;
+  }
+
+  .explore-tab {
+    flex:1;
+    padding:12px;
+    border:none;
+    border-radius:12px;
+    background:rgba(102, 126, 234, 0.1);
+    color:#667eea;
+    cursor:pointer;
+    font-weight:600;
+    transition:all .3s;
+  }
+
+  .explore-tab.active {
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+    box-shadow:0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  .explore-results {
+    margin-top:20px;
+  }
+
+  .user-result {
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    padding:16px;
+    border-radius:16px;
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    cursor:pointer;
+    transition:all .3s;
+    border:1px solid rgba(255,255,255,0.3);
+  }
+
+  .user-result:hover {
+    transform:translateY(-2px);
+    box-shadow:0 8px 24px rgba(0,0,0,0.1);
+  }
+
+  /* CHAT STYLES */
+  .chat-container {
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:20px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.08);
+    max-height:600px;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .chat-messages {
+    flex:1;
+    overflow-y:auto;
+    padding:16px;
+    margin-bottom:16px;
+    background:rgba(0,0,0,0.02);
+    border-radius:12px;
+  }
+
+  .chat-message {
+    margin-bottom:12px;
+    display:flex;
+    gap:8px;
+  }
+
+  .chat-message.own {
+    flex-direction:row-reverse;
+  }
+
+  .chat-bubble {
+    max-width:70%;
+    padding:10px 14px;
+    border-radius:16px;
+    word-wrap:break-word;
+  }
+
+  .chat-message.own .chat-bubble {
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+  }
+
+  .chat-message:not(.own) .chat-bubble {
+    background:#fff;
+    border:1px solid #e2e8f0;
+  }
+
+  .chat-input-container {
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+
+  .chat-input {
+    flex:1;
+    padding:12px;
+    border-radius:12px;
+    border:2px solid #e2e8f0;
+    font-size:14px;
+  }
+
+  .chat-send-btn {
+    padding:12px 20px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+    cursor:pointer;
+    font-weight:600;
+  }
+
+  .notification-item {
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    padding:16px;
+    border-radius:16px;
+    margin-bottom:12px;
+    border:1px solid rgba(255,255,255,0.3);
+    cursor:pointer;
+    transition:all .3s;
+  }
+
+  .notification-item:hover {
+    transform:translateY(-2px);
+    box-shadow:0 8px 24px rgba(0,0,0,0.1);
+  }
+
+  .notification-item.unread {
+    background:linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border-left:4px solid #667eea;
+  }
+
+  .chat-media {
+    max-width:200px;
+    max-height:200px;
+    border-radius:12px;
+    margin-top:8px;
+  }
+
+  .chat-audio {
+    margin-top:8px;
+  }
+
+  /* CALL STYLES */
+  .call-container {
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    background:rgba(0,0,0,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:20px;
+    padding:40px;
+    z-index:1000;
+    text-align:center;
+    min-width:400px;
+  }
+
+  .call-video {
+    width:100%;
+    max-width:600px;
+    border-radius:12px;
+    margin:20px 0;
+  }
+
+  .call-controls {
+    display:flex;
+    gap:16px;
+    justify-content:center;
+    margin-top:20px;
+  }
+
+  .call-btn {
+    width:60px;
+    height:60px;
+    border:none;
+    border-radius:50%;
+    cursor:pointer;
+    font-size:24px;
+    transition:all .3s;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .call-btn.answer {
+    background:linear-gradient(135deg, #10b981 0%, #059669 100%);
+  }
+
+  .call-btn.decline {
+    background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  }
+
+  .call-btn:hover {
+    transform:scale(1.1);
+  }
+
+  .recording-indicator {
+    display:inline-block;
+    width:12px;
+    height:12px;
+    background:#ef4444;
+    border-radius:50%;
+    animation:pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity:1; }
+    50% { opacity:0.3; }
+  }
+
+  .audio-recorder-btn {
+    padding:12px;
+    border:none;
+    border-radius:12px;
+    background:#e2e8f0;
+    cursor:pointer;
+    font-size:20px;
+    transition:all .3s;
+  }
+
+  .audio-recorder-btn.recording {
+    background:#ef4444;
+    color:#fff;
+    animation:pulse 1.5s infinite;
+  }
+
+  .chat-message-actions {
+    position:absolute;
+    top:8px;
+    right:8px;
+    opacity:0;
+    transition:opacity .3s;
+  }
+
+  .chat-message:hover .chat-message-actions {
+    opacity:1;
+  }
+
+  .delete-message-btn {
+    background:rgba(239, 68, 68, 0.9);
+    color:#fff;
+    border:none;
+    border-radius:6px;
+    padding:4px 8px;
+    cursor:pointer;
+    font-size:12px;
+  }
+
+  .verified-badge, .owner-badge {
+    display:inline-block;
+    width:18px;
+    height:18px;
+    margin-left:4px;
+    vertical-align:middle;
+  }
+
+  /* AUTH TABS */
+  .auth-tab {
+    background:rgba(255,255,255,0.3);
+    color:#666;
+    transition:all .3s;
+    border:none;
+  }
+
+  .auth-tab.active {
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+    box-shadow:0 4px 15px rgba(102, 126, 234, 0.3);
+  }
+
+  #authBox button {
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:12px;
+    margin-top:16px;
+    background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color:#fff;
+    font-size:16px;
+    font-weight:600;
+    cursor:pointer;
+    transition:all .3s;
+    box-shadow:0 4px 15px rgba(102, 126, 234, 0.4);
+  }
+
+  #authBox button:hover {
+    transform:translateY(-2px);
+    box-shadow:0 6px 25px rgba(102, 126, 234, 0.5);
+  }
+
+  #authBox button:active {
+    transform:translateY(0);
+  }
+
+  #authBox button:disabled {
+    opacity:0.6;
+    cursor:not-allowed;
+  }
+
+  /* ACCOUNT SELECTOR */
+  .account-selector-overlay {
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    background:rgba(0,0,0,0.7);
+    backdrop-filter:blur(10px);
+    z-index:9999;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  .account-selector {
+    background:rgba(255,255,255,0.95);
+    backdrop-filter:blur(20px);
+    border-radius:24px;
+    padding:32px;
+    max-width:400px;
+    width:90%;
+    box-shadow:0 20px 60px rgba(0,0,0,0.3);
+  }
+
+  .account-option {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:16px;
+    margin:8px 0;
+    border-radius:12px;
+    background:rgba(255,255,255,0.5);
+    cursor:pointer;
+    transition:all .3s;
+    border:2px solid transparent;
+  }
+
+  .account-option:hover {
+    background:linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border-color:#667eea;
+    transform:translateX(4px);
+  }
+</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<div id="leftbar">
+  <button data-sec="inicio">Inicio</button>
+  <button data-sec="explorar">Explorar</button>
+  <button data-sec="siguiendo">Siguiendo</button>
+  <button data-sec="mensajes">Mensajes</button>
+  <button data-sec="mas">Más</button>
+  <button data-sec="configuracion">Configuración</button>
+</div>
+
+<div id="app">
+  <div id="authBox">
+    <h2>Twivo</h2>
+    <div id="authTabs" style="display:flex;gap:8px;margin-bottom:20px;">
+      <button id="loginTab" class="auth-tab active" style="flex:1;padding:10px;border:none;border-radius:12px;cursor:pointer;font-weight:600;">Iniciar Sesión</button>
+      <button id="registerTab" class="auth-tab" style="flex:1;padding:10px;border:none;border-radius:12px;cursor:pointer;font-weight:600;">Registrarse</button>
+    </div>
+    
+    <div id="loginForm">
+      <input id="loginUser" placeholder="Nombre de usuario" />
+      <input id="loginPassword" type="password" placeholder="Contraseña" />
+      <button id="loginBtn">Entrar</button>
+    </div>
+    
+    <div id="registerForm" style="display:none;">
+      <input id="registerUser" placeholder="Nombre de usuario" />
+      <input id="registerPassword" type="password" placeholder="Contraseña" />
+      <input id="registerPasswordConfirm" type="password" placeholder="Confirmar contraseña" />
+      <button id="registerBtn">Registrarse</button>
+    </div>
+  </div>
+
+  <div id="mainUI" style="display:none;">
+    <div id="composer">
+      <textarea id="text" placeholder="¿Qué estás pensando?"></textarea>
+      <button id="send">Enviar</button>
+    </div>
+    <div id="posts"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getDatabase, ref, push, set, onValue, limitToLast, query, runTransaction, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyATTtOEPHOi3lBiM9CcgzkCN-MSK50RjY4",
+  authDomain: "retwitt-af48c.firebaseapp.com",
+  projectId: "retwitt-af48c",
+  storageBucket: "retwitt-af48c.firebasestorage.app",
+  messagingSenderId: "1000651551704",
+  appId: "1:1000651551704:web:89733743b024fd8c4cf8ad",
+  measurementId: "G-P5GWG9CEC1"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+let currentUser = JSON.parse(localStorage.getItem('xchat_user') || 'null');
+const authBox = document.getElementById('authBox');
+const mainUI = document.getElementById('mainUI');
+const leftbar = document.getElementById('leftbar');
+const postsEl = document.getElementById('posts');
+let currentListener = null;
+
+console.log('currentUser al cargar:', currentUser);
+console.log('authBox existe:', !!authBox);
+console.log('mainUI existe:', !!mainUI);
+
+// Generar o recuperar ID único del usuario
+function getUserId() {
+  let userId = localStorage.getItem('twivo_user_id');
+  if (!userId) {
+    userId = 'uid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('twivo_user_id', userId);
+  }
+  return userId;
+}
+
+const currentUserId = getUserId();
+
+// Sistema de traducciones
+const translations = {
+  es: {
+    // Auth
+    login: "Iniciar Sesión",
+    register: "Registrarse",
+    username: "Nombre de usuario",
+    password: "Contraseña",
+    confirmPassword: "Confirmar contraseña",
+    enter: "Entrar",
+    registerBtn: "Registrarse",
+    
+    // Leftbar
+    home: "Inicio",
+    explore: "Explorar",
+    following: "Siguiendo",
+    messages: "Mensajes",
+    more: "Más",
+    settings: "Configuración",
+    
+    // Composer
+    whatThinking: "¿Qué estás pensando?",
+    send: "Enviar",
+    sending: "Enviando...",
+    
+    // Posts
+    likes: "Me gusta",
+    comments: "Comentarios",
+    share: "Compartir",
+    delete: "Eliminar",
+    pin: "Fijar",
+    unpin: "Desfijar",
+    pinned: "Post Fijado",
+    
+    // Profile
+    posts: "Posts",
+    followers: "Seguidores",
+    followingCount: "Siguiendo",
+    follow: "Seguir",
+    unfollow: "Dejar de seguir",
+    chat: "Chat",
+    shareProfile: "Compartir perfil",
+    back: "Volver",
+    
+    // Comments
+    writeComment: "Escribe un comentario...",
+    comment: "Comentar",
+    noComments: "No hay comentarios aún. ¡Sé el primero!",
+    commentsTitle: "Comentarios",
+    
+    // Settings
+    settingsTitle: "Configuración",
+    profile: "Perfil",
+    editProfile: "Editar mi perfil",
+    avatarURL: "Avatar URL",
+    bannerURL: "Banner URL",
+    messagesSettings: "Mensajes",
+    whoCanMessage: "¿Quién puede enviarte mensajes?",
+    everyone: "Todo el mundo",
+    followersOnly: "Solo quienes me siguen",
+    saveChanges: "Guardar cambios",
+    verification: "Verificación",
+    verified: "Tu cuenta está verificada",
+    canVerify: "¡Puedes verificar tu cuenta!",
+    verifyAccount: "Verificar mi cuenta",
+    notifications: "Notificaciones",
+    enableNotifications: "Activar notificaciones del navegador",
+    legal: "Legal",
+    privacyPolicy: "Política de Privacidad",
+    securityData: "Seguridad y Datos",
+    dangerZone: "Zona de Peligro",
+    deleteAccount: "Eliminar cuenta permanentemente",
+    logout: "Cerrar sesión",
+    language: "Idioma",
+    
+    // Explore
+    exploreTitle: "Explorar",
+    searchPlaceholder: "Buscar usuarios o posts...",
+    recent: "Recientes",
+    trending: "Tendencias",
+    users: "Usuarios",
+    viewProfile: "Ver perfil",
+    noResults: "No se encontraron resultados",
+    
+    // Notifications
+    notificationsTitle: "Notificaciones",
+    noNotifications: "No tienes notificaciones.",
+    likeNotif: "le dio like a tu post",
+    followNotif: "ahora te sigue",
+    messageNotif: "te envió un mensaje",
+    
+    // Chat
+    chatWith: "Chat con",
+    call: "Llamar",
+    video: "Video",
+    writeMessage: "Escribe un mensaje...",
+    voiceMessage: "Mensaje de voz",
+    calling: "Llamando a",
+    incomingCall: "te está llamando...",
+    
+    // Alerts
+    alreadyLiked: "Ya diste like",
+    linkCopied: "¡Link copiado al portapapeles!",
+    profileLinkCopied: "¡Link del perfil copiado!",
+    deletePostConfirm: "¿Seguro que quieres eliminar este post?",
+    postDeleted: "Post eliminado",
+    deleteCommentConfirm: "¿Eliminar este comentario?",
+    deleteMessageConfirm: "¿Eliminar este mensaje?",
+    pinned: "Post fijado",
+    unpinned: "Post desfijado",
+    profileUpdated: "Perfil actualizado. Los cambios se aplicarán en breve.",
+    accountCreated: "Cuenta creada correctamente.",
+    logoutConfirm: "¿Cerrar sesión?",
+    deleteAccountConfirm: "⚠️ ADVERTENCIA: Esta acción es PERMANENTE.\n\n¿Estás seguro de que quieres eliminar tu cuenta?\n\nSe eliminará:\n- Tu perfil\n- Todos tus posts\n- Todos tus comentarios\n- Tu cuenta de inicio de sesión\n\nEsta acción NO se puede deshacer.",
+    deleteAccountType: 'Escribe "ELIMINAR" (en mayúsculas) para confirmar:',
+    accountDeleted: "Tu cuenta ha sido eliminada permanentemente.",
+    accountVerified: "¡Tu cuenta ha sido verificada! ✓"
+  },
+  
+  en: {
+    // Auth
+    login: "Sign In",
+    register: "Sign Up",
+    username: "Username",
+    password: "Password",
+    confirmPassword: "Confirm password",
+    enter: "Enter",
+    registerBtn: "Sign Up",
+    
+    // Leftbar
+    home: "Home",
+    explore: "Explore",
+    following: "Following",
+    messages: "Messages",
+    more: "More",
+    settings: "Settings",
+    
+    // Composer
+    whatThinking: "What's on your mind?",
+    send: "Send",
+    sending: "Sending...",
+    
+    // Posts
+    likes: "Likes",
+    comments: "Comments",
+    share: "Share",
+    delete: "Delete",
+    pin: "Pin",
+    unpin: "Unpin",
+    pinned: "Pinned Post",
+    
+    // Profile
+    posts: "Posts",
+    followers: "Followers",
+    followingCount: "Following",
+    follow: "Follow",
+    unfollow: "Unfollow",
+    chat: "Chat",
+    shareProfile: "Share profile",
+    back: "Back",
+    
+    // Comments
+    writeComment: "Write a comment...",
+    comment: "Comment",
+    noComments: "No comments yet. Be the first!",
+    commentsTitle: "Comments",
+    
+    // Settings
+    settingsTitle: "Settings",
+    profile: "Profile",
+    editProfile: "Edit my profile",
+    avatarURL: "Avatar URL",
+    bannerURL: "Banner URL",
+    messagesSettings: "Messages",
+    whoCanMessage: "Who can message you?",
+    everyone: "Everyone",
+    followersOnly: "Only followers",
+    saveChanges: "Save changes",
+    verification: "Verification",
+    verified: "Your account is verified",
+    canVerify: "You can verify your account!",
+    verifyAccount: "Verify my account",
+    notifications: "Notifications",
+    enableNotifications: "Enable browser notifications",
+    legal: "Legal",
+    privacyPolicy: "Privacy Policy",
+    securityData: "Security & Data",
+    dangerZone: "Danger Zone",
+    deleteAccount: "Delete account permanently",
+    logout: "Log out",
+    language: "Language",
+    
+    // Explore
+    exploreTitle: "Explore",
+    searchPlaceholder: "Search users or posts...",
+    recent: "Recent",
+    trending: "Trending",
+    users: "Users",
+    viewProfile: "View profile",
+    noResults: "No results found",
+    
+    // Notifications
+    notificationsTitle: "Notifications",
+    noNotifications: "You have no notifications.",
+    likeNotif: "liked your post",
+    followNotif: "is now following you",
+    messageNotif: "sent you a message",
+    
+    // Chat
+    chatWith: "Chat with",
+    call: "Call",
+    video: "Video",
+    writeMessage: "Write a message...",
+    voiceMessage: "Voice message",
+    calling: "Calling",
+    incomingCall: "is calling you...",
+    
+    // Alerts
+    alreadyLiked: "You already liked this",
+    linkCopied: "Link copied to clipboard!",
+    profileLinkCopied: "Profile link copied!",
+    deletePostConfirm: "Are you sure you want to delete this post?",
+    postDeleted: "Post deleted",
+    deleteCommentConfirm: "Delete this comment?",
+    deleteMessageConfirm: "Delete this message?",
+    pinned: "Post pinned",
+    unpinned: "Post unpinned",
+    profileUpdated: "Profile updated. Changes will be applied shortly.",
+    accountCreated: "Account created successfully.",
+    logoutConfirm: "Log out?",
+    deleteAccountConfirm: "⚠️ WARNING: This action is PERMANENT.\n\nAre you sure you want to delete your account?\n\nThis will delete:\n- Your profile\n- All your posts\n- All your comments\n- Your login account\n\nThis action CANNOT be undone.",
+    deleteAccountType: 'Type "DELETE" (in capitals) to confirm:',
+    accountDeleted: "Your account has been permanently deleted.",
+    accountVerified: "Your account has been verified! ✓"
+  },
+  
+  fr: {
+    // Auth
+    login: "Se connecter",
+    register: "S'inscrire",
+    username: "Nom d'utilisateur",
+    password: "Mot de passe",
+    confirmPassword: "Confirmer le mot de passe",
+    enter: "Entrer",
+    registerBtn: "S'inscrire",
+    
+    // Leftbar
+    home: "Accueil",
+    explore: "Explorer",
+    following: "Abonnements",
+    messages: "Messages",
+    more: "Plus",
+    settings: "Paramètres",
+    
+    // Composer
+    whatThinking: "À quoi pensez-vous?",
+    send: "Envoyer",
+    sending: "Envoi...",
+    
+    // Posts
+    likes: "J'aime",
+    comments: "Commentaires",
+    share: "Partager",
+    delete: "Supprimer",
+    pin: "Épingler",
+    unpin: "Désépingler",
+    pinned: "Post épinglé",
+    
+    // Profile
+    posts: "Posts",
+    followers: "Abonnés",
+    followingCount: "Abonnements",
+    follow: "Suivre",
+    unfollow: "Ne plus suivre",
+    chat: "Chat",
+    shareProfile: "Partager le profil",
+    back: "Retour",
+    
+    // Comments
+    writeComment: "Écrire un commentaire...",
+    comment: "Commenter",
+    noComments: "Pas encore de commentaires. Soyez le premier!",
+    commentsTitle: "Commentaires",
+    
+    // Settings
+    settingsTitle: "Paramètres",
+    profile: "Profil",
+    editProfile: "Modifier mon profil",
+    avatarURL: "URL de l'avatar",
+    bannerURL: "URL de la bannière",
+    messagesSettings: "Messages",
+    whoCanMessage: "Qui peut vous envoyer des messages?",
+    everyone: "Tout le monde",
+    followersOnly: "Seulement les abonnés",
+    saveChanges: "Enregistrer les modifications",
+    verification: "Vérification",
+    verified: "Votre compte est vérifié",
+    canVerify: "Vous pouvez vérifier votre compte!",
+    verifyAccount: "Vérifier mon compte",
+    notifications: "Notifications",
+    enableNotifications: "Activer les notifications du navigateur",
+    legal: "Légal",
+    privacyPolicy: "Politique de confidentialité",
+    securityData: "Sécurité et données",
+    dangerZone: "Zone de danger",
+    deleteAccount: "Supprimer le compte définitivement",
+    logout: "Se déconnecter",
+    language: "Langue",
+    
+    // Explore
+    exploreTitle: "Explorer",
+    searchPlaceholder: "Rechercher des utilisateurs ou des posts...",
+    recent: "Récents",
+    trending: "Tendances",
+    users: "Utilisateurs",
+    viewProfile: "Voir le profil",
+    noResults: "Aucun résultat trouvé",
+    
+    // Notifications
+    notificationsTitle: "Notifications",
+    noNotifications: "Vous n'avez aucune notification.",
+    likeNotif: "a aimé votre post",
+    followNotif: "vous suit maintenant",
+    messageNotif: "vous a envoyé un message",
+    
+    // Chat
+    chatWith: "Chat avec",
+    call: "Appeler",
+    video: "Vidéo",
+    writeMessage: "Écrire un message...",
+    voiceMessage: "Message vocal",
+    calling: "Appel en cours",
+    incomingCall: "vous appelle...",
+    
+    // Alerts
+    alreadyLiked: "Vous avez déjà aimé",
+    linkCopied: "Lien copié dans le presse-papiers!",
+    profileLinkCopied: "Lien du profil copié!",
+    deletePostConfirm: "Êtes-vous sûr de vouloir supprimer ce post?",
+    postDeleted: "Post supprimé",
+    deleteCommentConfirm: "Supprimer ce commentaire?",
+    deleteMessageConfirm: "Supprimer ce message?",
+    pinned: "Post épinglé",
+    unpinned: "Post désépinglé",
+    profileUpdated: "Profil mis à jour. Les modifications seront appliquées sous peu.",
+    accountCreated: "Compte créé avec succès.",
+    logoutConfirm: "Se déconnecter?",
+    deleteAccountConfirm: "⚠️ AVERTISSEMENT: Cette action est PERMANENTE.\n\nÊtes-vous sûr de vouloir supprimer votre compte?\n\nCela supprimera:\n- Votre profil\n- Tous vos posts\n- Tous vos commentaires\n- Votre compte de connexion\n\nCette action NE PEUT PAS être annulée.",
+    deleteAccountType: 'Tapez "SUPPRIMER" (en majuscules) pour confirmer:',
+    accountDeleted: "Votre compte a été définitivement supprimé.",
+    accountVerified: "Votre compte a été vérifié! ✓"
+  },
+  
+  it: {
+    // Auth
+    login: "Accedi",
+    register: "Registrati",
+    username: "Nome utente",
+    password: "Password",
+    confirmPassword: "Conferma password",
+    enter: "Entra",
+    registerBtn: "Registrati",
+    
+    // Leftbar
+    home: "Home",
+    explore: "Esplora",
+    following: "Seguiti",
+    messages: "Messaggi",
+    more: "Altro",
+    settings: "Impostazioni",
+    
+    // Composer
+    whatThinking: "A cosa stai pensando?",
+    send: "Invia",
+    sending: "Invio...",
+    
+    // Posts
+    likes: "Mi piace",
+    comments: "Commenti",
+    share: "Condividi",
+    delete: "Elimina",
+    pin: "Fissa",
+    unpin: "Rimuovi",
+    pinned: "Post fissato",
+    
+    // Profile
+    posts: "Post",
+    followers: "Follower",
+    followingCount: "Seguiti",
+    follow: "Segui",
+    unfollow: "Non seguire più",
+    chat: "Chat",
+    shareProfile: "Condividi profilo",
+    back: "Indietro",
+    
+    // Comments
+    writeComment: "Scrivi un commento...",
+    comment: "Commenta",
+    noComments: "Nessun commento ancora. Sii il primo!",
+    commentsTitle: "Commenti",
+    
+    // Settings
+    settingsTitle: "Impostazioni",
+    profile: "Profilo",
+    editProfile: "Modifica il mio profilo",
+    avatarURL: "URL avatar",
+    bannerURL: "URL banner",
+    messagesSettings: "Messaggi",
+    whoCanMessage: "Chi può inviarti messaggi?",
+    everyone: "Tutti",
+    followersOnly: "Solo follower",
+    saveChanges: "Salva modifiche",
+    verification: "Verifica",
+    verified: "Il tuo account è verificato",
+    canVerify: "Puoi verificare il tuo account!",
+    verifyAccount: "Verifica il mio account",
+    notifications: "Notifiche",
+    enableNotifications: "Attiva notifiche del browser",
+    legal: "Legale",
+    privacyPolicy: "Privacy Policy",
+    securityData: "Sicurezza e dati",
+    dangerZone: "Zona pericolosa",
+    deleteAccount: "Elimina account permanentemente",
+    logout: "Esci",
+    language: "Lingua",
+    
+    // Explore
+    exploreTitle: "Esplora",
+    searchPlaceholder: "Cerca utenti o post...",
+    recent: "Recenti",
+    trending: "Di tendenza",
+    users: "Utenti",
+    viewProfile: "Vedi profilo",
+    noResults: "Nessun risultato trovato",
+    
+    // Notifications
+    notificationsTitle: "Notifiche",
+    noNotifications: "Non hai notifiche.",
+    likeNotif: "ha messo mi piace al tuo post",
+    followNotif: "ti sta seguendo",
+    messageNotif: "ti ha inviato un messaggio",
+    
+    // Chat
+    chatWith: "Chat con",
+    call: "Chiama",
+    video: "Video",
+    writeMessage: "Scrivi un messaggio...",
+    voiceMessage: "Messaggio vocale",
+    calling: "Chiamata in corso",
+    incomingCall: "ti sta chiamando...",
+    
+    // Alerts
+    alreadyLiked: "Hai già messo mi piace",
+    linkCopied: "Link copiato negli appunti!",
+    profileLinkCopied: "Link del profilo copiato!",
+    deletePostConfirm: "Sei sicuro di voler eliminare questo post?",
+    postDeleted: "Post eliminato",
+    deleteCommentConfirm: "Eliminare questo commento?",
+    deleteMessageConfirm: "Eliminare questo messaggio?",
+    pinned: "Post fissato",
+    unpinned: "Post rimosso",
+    profileUpdated: "Profilo aggiornato. Le modifiche saranno applicate a breve.",
+    accountCreated: "Account creato con successo.",
+    logoutConfirm: "Disconnettersi?",
+    deleteAccountConfirm: "⚠️ ATTENZIONE: Questa azione è PERMANENTE.\n\nSei sicuro di voler eliminare il tuo account?\n\nQuesto eliminerà:\n- Il tuo profilo\n- Tutti i tuoi post\n- Tutti i tuoi commenti\n- Il tuo account di accesso\n\nQuesta azione NON può essere annullata.",
+    deleteAccountType: 'Digita "ELIMINA" (in maiuscolo) per confermare:',
+    accountDeleted: "Il tuo account è stato eliminato permanentemente.",
+    accountVerified: "Il tuo account è stato verificato! ✓"
+  }
+};
+
+// Detectar y establecer idioma
+let currentLanguage = localStorage.getItem('twivo_language');
+if (!currentLanguage) {
+  const browserLang = navigator.language.split('-')[0];
+  currentLanguage = ['es', 'en', 'fr', 'it'].includes(browserLang) ? browserLang : 'en';
+  localStorage.setItem('twivo_language', currentLanguage);
+}
+
+function t(key) {
+  return translations[currentLanguage][key] || translations['en'][key] || key;
+}
+
+function setLanguage(lang) {
+  currentLanguage = lang;
+  localStorage.setItem('twivo_language', lang);
+  location.reload();
+}
+
+// Sistema de Owner - Solo verificación, no se puede reclamar
+const OWNER_USER_KEY = 'twivo_owner';
+
+function isOwner(username) {
+  const owner = localStorage.getItem(OWNER_USER_KEY);
+  return owner === username;
+}
+
+function getOwner() {
+  return localStorage.getItem(OWNER_USER_KEY);
+}
+
+// Inicializar PeerJS
+let peer = null;
+let activeConnections = {};
+let currentCall = null;
+let localStream = null;
+let audioRecorder = null;
+let audioChunks = [];
+
+function initPeer() {
+  if (peer) return;
+  
+  const peerId = 'twivo_' + currentUserId;
+  peer = new Peer(peerId);
+  
+  peer.on('open', (id) => {
+    console.log('Peer conectado:', id);
+    // Guardar peerId en Firebase
+    const userProfileRef = ref(db, `userProfiles/${currentUser.username}`);
+    runTransaction(userProfileRef, (profile) => {
+      if (profile) {
+        profile.peerId = id;
+      }
+      return profile;
+    });
+  });
+  
+  peer.on('connection', (conn) => {
+    setupConnection(conn);
+  });
+  
+  peer.on('call', (call) => {
+    handleIncomingCall(call);
+  });
+  
+  peer.on('error', (err) => {
+    console.error('Peer error:', err);
+  });
+}
+
+function setupConnection(conn) {
+  conn.on('open', () => {
+    console.log('Conexión establecida con:', conn.peer);
+    activeConnections[conn.peer] = conn;
+  });
+  
+  conn.on('data', (data) => {
+    handleIncomingMessage(data, conn.peer);
+  });
+  
+  conn.on('close', () => {
+    delete activeConnections[conn.peer];
+  });
+}
+
+function handleIncomingMessage(data, fromPeer) {
+  // Guardar mensaje en Firebase
+  const chatId = generateChatId(currentUser.username, data.from);
+  const messagesRef = ref(db, `chats/${chatId}/messages`);
+  const newMessageRef = push(messagesRef);
+  
+  set(newMessageRef, {
+    id: newMessageRef.key,
+    from: data.from,
+    fromUserId: data.fromUserId,
+    to: currentUser.username,
+    text: data.text,
+    type: data.type || 'text',
+    media: data.media || null,
+    timestamp: Date.now(),
+    read: false
+  });
+  
+  // Crear notificación
+  createNotification(currentUser.username, 'message', `${data.from} te envió un mensaje`, data.from);
+  
+  // Notificación del navegador
+  showBrowserNotification('Nuevo mensaje', `${data.from}: ${data.text || 'Archivo multimedia'}`);
+}
+
+if (currentUser) showMain();
+
+// Inicializar peer cuando el usuario está logueado
+if (currentUser) {
+  initPeer();
+  requestNotificationPermission();
+}
+
+// Verificar si hay un post o usuario en la URL
+const urlParams = new URLSearchParams(window.location.search);
+const postParam = urlParams.get('post');
+const userParam = urlParams.get('user');
+
+if (currentUser) {
+  if (postParam) {
+    setTimeout(() => viewPostDetail(postParam), 500);
+  } else if (userParam) {
+    setTimeout(() => viewUserProfile(userParam), 500);
+  }
+}
+
+document.getElementById('loginBtn').onclick = () => {
+  const uname = document.getElementById('user').value.trim();
+  if (!uname) return alert('Escribe un nombre.');
+
+  currentUser = {
+    username: uname,
+    avatar: `https://api.dicebear.com/7.x/thumbs/svg?seed=${uname}`,
+    userId: currentUserId
+  };
+
+  localStorage.setItem('xchat_user', JSON.stringify(currentUser));
+  
+  // Guardar userId en Firebase asociado al username
+  const userRef = ref(db, `users/${currentUserId}`);
+  set(userRef, {
+    username: uname,
+    createdAt: Date.now()
+  });
+
+  location.reload();
+};
+
+function showMain() {
+  authBox.style.display = 'none';
+  mainUI.style.display = 'block';
+  leftbar.style.display = 'flex';
+  
+  // Configurar botón de enviar
+  document.getElementById('send').onclick = async () => {
+    const textArea = document.getElementById('text');
+    const sendBtn = document.getElementById('send');
+    const txt = textArea.value.trim();
+    
+    if (!txt) return;
+    
+    textArea.disabled = true;
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Enviando...';
+    
+    try {
+      const t = Date.now();
+      const newPostRef = push(ref(db, 'xposts'));
+      await set(newPostRef, {
+        user: currentUser.username,
+        userId: currentUserId,
+        avatar: currentUser.avatar,
+        text: txt,
+        timestamp: t,
+        likes: 0
+      });
+      textArea.value = '';
+    } catch(e) {
+      console.error('Error:', e);
+      alert('Error al enviar.');
+    }
+    
+    textArea.disabled = false;
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Enviar';
+    textArea.focus();
+  };
+  
+  loadSection('descubre');
+}
+
+function renderPost(key, p, isDetail = false, showPinned = false) {
+  const div = document.createElement('div');
+  div.className = 'post';
+  const avatar = p.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${p.user}`;
+  
+  // Verificar si es el dueño usando el userId
+  const isPostOwner = p.userId && p.userId === currentUserId;
+  const isSiteOwner = isOwner(currentUser.username);
+  
+  const deleteBtn = (isPostOwner || isSiteOwner) ? `<span data-action="delete" data-key="${key}" style="color:#ef4444;">🗑️ Eliminar</span>` : '';
+  const pinBtn = isPostOwner && showPinned && !isDetail ? `<span data-action="pin" data-key="${key}" style="color:#fbbf24;">📌 ${p.pinned ? 'Desfijar' : 'Fijar'}</span>` : '';
+  
+  const pinnedBadge = p.pinned && showPinned ? '<div class="pinned-badge">📌 Post Fijado</div>' : '';
+  
+  // Obtener badge del usuario desde Firebase
+  getUserBadge(p.user).then(badge => {
+    const usernameEl = div.querySelector('.username');
+    if (usernameEl && badge) {
+      usernameEl.innerHTML = `${p.user}${badge}`;
+    }
+  });
+  
+  div.innerHTML = `
+    ${pinnedBadge}
+    <div class="meta">
+      <img class="profileIcon" src="${avatar}" data-user="${p.user}" style="cursor:pointer;" />
+      <div>
+        <div class="username" data-user="${p.user}" style="cursor:pointer;">${p.user}</div>
+        <div style="font-size:12px;color:#999;">${new Date(p.timestamp).toLocaleString()}</div>
+      </div>
+    </div>
+    <div class="post-content" ${!isDetail ? `data-key="${key}" style="cursor:pointer;"` : ''}>${escapeHtml(p.text)}</div>
+    <div class="actions">
+      <span data-action="like" data-key="${key}">❤️ ${p.likes || 0}</span>
+      <span data-action="comments" data-key="${key}">💬 ${p.commentsCount || 0}</span>
+      <span data-action="share" data-key="${key}">🔗 Compartir</span>
+      ${pinBtn}
+      ${deleteBtn}
+    </div>`;
+ 
+  div.querySelector('[data-action="like"]').onclick = () => likePost(key);
+  div.querySelector('[data-action="share"]').onclick = () => sharePost(key);
+  div.querySelector('[data-action="comments"]').onclick = () => viewPostDetail(key);
+  
+  // Click en username o avatar para ver perfil
+  div.querySelectorAll('[data-user]').forEach(el => {
+    el.onclick = (e) => {
+      e.stopPropagation();
+      viewUserProfile(p.user);
+    };
+  });
+  
+  if (!isDetail) {
+    const content = div.querySelector('.post-content');
+    content.onclick = () => viewPostDetail(key);
+  }
+  
+  if (isPostOwner && pinBtn) {
+    div.querySelector('[data-action="pin"]').onclick = () => togglePin(key, p.pinned);
+  }
+  
+  if (isPostOwner || isSiteOwner) {
+    div.querySelector('[data-action="delete"]').onclick = () => deletePost(key);
+  }
+
+  return div;
+}
+
+// Función para obtener badge del usuario
+async function getUserBadge(username) {
+  if (isOwner(username)) {
+    return '<img src="owner.png" class="owner-badge" alt="Owner" title="Owner de Twivo" />';
+  }
+  
+  try {
+    const userProfileRef = ref(db, `userProfiles/${username}`);
+    const snap = await get(userProfileRef);
+    const profile = snap.val();
+    
+    if (profile?.verified) {
+      return '<img src="verificado.png" class="verified-badge" alt="Verificado" title="Usuario Verificado" />';
+    }
+  } catch (e) {
+    console.error('Error obteniendo badge:', e);
+  }
+  
+  return '';
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+}
+
+function likePost(id) {
+  const liked = JSON.parse(localStorage.getItem('xchat_likes') || '{}');
+  if (liked[id]) return alert('Ya diste like');
+
+  // Obtener info del post para notificar
+  const postRef = ref(db, 'xposts/' + id);
+  onValue(postRef, (snap) => {
+    const post = snap.val();
+    if (post && post.user !== currentUser.username) {
+      createNotification(post.user, 'like', `${currentUser.username} le dio like a tu post`, currentUser.username);
+    }
+  }, { onlyOnce: true });
+
+  runTransaction(postRef, (p) => {
+    if (p) p.likes = (p.likes || 0) + 1;
+    return p;
+  });
+  
+  liked[id] = true;
+  localStorage.setItem('xchat_likes', JSON.stringify(liked));
+}
+
+function sharePost(id) {
+  const url = location.origin + location.pathname + `?post=${id}`;
+  navigator.clipboard.writeText(url);
+  alert('¡Link copiado al portapapeles!');
+}
+
+function deletePost(id) {
+  if (!confirm('¿Seguro que quieres eliminar este post?')) return;
+  
+  const postRef = ref(db, 'xposts/' + id);
+  set(postRef, null).then(() => {
+    alert('Post eliminado');
+  }).catch(e => {
+    console.error('Error al eliminar:', e);
+    alert('Error al eliminar el post');
+  });
+}
+
+function viewPostDetail(postId) {
+  if (currentListener) {
+    currentListener();
+    currentListener = null;
+  }
+  
+  postsEl.innerHTML = '<div style="text-align:center;padding:20px;">Cargando...</div>';
+  
+  const postRef = ref(db, 'xposts/' + postId);
+  
+  onValue(postRef, (snap) => {
+    const post = snap.val();
+    
+    if (!post) {
+      postsEl.innerHTML = '<div style="text-align:center;padding:20px;">Post no encontrado</div>';
+      return;
+    }
+    
+    postsEl.innerHTML = '';
+    
+    // Botón de volver
+    const backBtn = document.createElement('button');
+    backBtn.textContent = '← Volver';
+    backBtn.style.cssText = 'margin-bottom:20px;padding:10px 20px;border:none;border-radius:12px;background:rgba(255,255,255,0.95);cursor:pointer;font-weight:600;';
+    backBtn.onclick = () => loadSection('explorar');
+    postsEl.appendChild(backBtn);
+    
+    // Post principal
+    postsEl.appendChild(renderPost(postId, post, true));
+    
+    // Composer para comentarios
+    const commentComposer = document.createElement('div');
+    commentComposer.style.cssText = 'display:flex;gap:12px;margin:20px 0;padding:20px;background:rgba(255,255,255,0.95);backdrop-filter:blur(20px);border-radius:20px;box-shadow:0 8px 32px rgba(0,0,0,0.08);';
+    commentComposer.innerHTML = `
+      <textarea id="commentText" placeholder="Escribe un comentario..." style="flex:1;min-height:60px;border-radius:14px;padding:14px;border:2px solid #e2e8f0;resize:none;font-size:15px;font-family:inherit;background:#fff;"></textarea>
+      <button id="sendComment" style="padding:12px 24px;border:none;border-radius:14px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;cursor:pointer;font-weight:600;font-size:15px;height:fit-content;align-self:flex-end;">Comentar</button>
+    `;
+    postsEl.appendChild(commentComposer);
+    
+    document.getElementById('sendComment').onclick = () => addComment(postId);
+    
+    // Título de comentarios
+    const commentsTitle = document.createElement('h3');
+    commentsTitle.textContent = 'Comentarios';
+    commentsTitle.style.cssText = 'margin:20px 0 10px 0;font-size:18px;';
+    postsEl.appendChild(commentsTitle);
+    
+    // Lista de comentarios
+    const commentsContainer = document.createElement('div');
+    commentsContainer.id = 'commentsContainer';
+    postsEl.appendChild(commentsContainer);
+    
+    loadComments(postId);
+  }, { onlyOnce: true });
+}
+
+function addComment(postId) {
+  const commentText = document.getElementById('commentText');
+  const sendBtn = document.getElementById('sendComment');
+  const txt = commentText.value.trim();
+  
+  if (!txt) return;
+  
+  commentText.disabled = true;
+  sendBtn.disabled = true;
+  sendBtn.textContent = 'Enviando...';
+  
+  const t = Date.now();
+  const commentsRef = ref(db, `comments/${postId}`);
+  const newCommentRef = push(commentsRef);
+  
+  set(newCommentRef, {
+    user: currentUser.username,
+    userId: currentUserId,
+    avatar: currentUser.avatar,
+    text: txt,
+    timestamp: t
+  }).then(() => {
+    // Actualizar contador de comentarios
+    const postRef = ref(db, 'xposts/' + postId);
+    runTransaction(postRef, (p) => {
+      if (p) {
+        p.commentsCount = (p.commentsCount || 0) + 1;
+      }
+      return p;
+    });
+    
+    commentText.value = '';
+    commentText.disabled = false;
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Comentar';
+    commentText.focus();
+  }).catch(e => {
+    console.error('Error:', e);
+    alert('Error al comentar');
+    commentText.disabled = false;
+    sendBtn.disabled = false;
+    sendBtn.textContent = 'Comentar';
+  });
+}
+
+function loadComments(postId) {
+  const commentsRef = ref(db, `comments/${postId}`);
+  const commentsQuery = query(commentsRef, limitToLast(100));
+  
+  onValue(commentsQuery, (snap) => {
+    const container = document.getElementById('commentsContainer');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    const arr = [];
+    
+    snap.forEach(ch => {
+      const msg = ch.val();
+      msg.id = ch.key;
+      arr.push(msg);
+    });
+    
+    arr.sort((a, b) => a.timestamp - b.timestamp);
+    
+    if (arr.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:20px;color:#999;">No hay comentarios aún. ¡Sé el primero!</div>';
+      return;
+    }
+    
+    arr.forEach(async (comment) => {
+      const commentDiv = document.createElement('div');
+      commentDiv.className = 'post';
+      const avatar = comment.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${comment.user}`;
+      
+      // Verificar si es dueño del comentario usando userId o si es owner del sitio
+      const isCommentOwner = comment.userId && comment.userId === currentUserId;
+      const isSiteOwner = isOwner(currentUser.username);
+      const deleteBtn = (isCommentOwner || isSiteOwner) ? `<span onclick="deleteComment('${postId}', '${comment.id}')" style="color:#ef4444;cursor:pointer;font-size:14px;margin-left:auto;">🗑️</span>` : '';
+      
+      // Obtener badge
+      const badge = await getUserBadge(comment.user);
+      
+      commentDiv.innerHTML = `
+        <div class="meta">
+          <img class="profileIcon" src="${avatar}" style="width:36px;height:36px;" />
+          <div style="flex:1;">
+            <div class="username" style="font-size:14px;">${comment.user}${badge}</div>
+            <div style="font-size:11px;color:#999;">${new Date(comment.timestamp).toLocaleString()}</div>
+          </div>
+          ${deleteBtn}
+        </div>
+        <div style="font-size:14px;margin-top:8px;">${escapeHtml(comment.text)}</div>
+      `;
+      container.appendChild(commentDiv);
+    });
+  });
+}
+
+window.deleteComment = function(postId, commentId) {
+  if (confirm('¿Eliminar este comentario?')) {
+    const commentRef = ref(db, `comments/${postId}/${commentId}`);
+    set(commentRef, null);
+    
+    // Actualizar contador
+    const postRef = ref(db, 'xposts/' + postId);
+    runTransaction(postRef, (p) => {
+      if (p && p.commentsCount > 0) {
+        p.commentsCount = p.commentsCount - 1;
+      }
+      return p;
+    });
+  }
+};
+
+leftbar.querySelectorAll('button').forEach(btn => {
+  btn.onclick = () => loadSection(btn.dataset.sec);
+});
+
+function loadSection(sec) {
+  postsEl.innerHTML = '';
+
+  if (currentListener) {
+    currentListener();
+    currentListener = null;
+  }
+
+  if (sec==='configuracion') {
+    loadConfigSection();
+    return;
+  }
+
+  if (sec === 'siguiendo') {
+    loadFollowingSection();
+    return;
+  }
+
+  if (sec === 'mensajes') {
+    loadNotificationsSection();
+    return;
+  }
+
+  if (sec === 'mas') {
+    loadMoreSection();
+    return;
+  }
+
+  if (sec === 'explorar') {
+    loadExplorerSection();
+    return;
+  }
+
+  // Sección de Inicio
+  const postsRef = ref(db,'xposts');
+  const postsQuery = query(postsRef, limitToLast(100));
+
+  currentListener = onValue(postsQuery, snap => {
+    postsEl.innerHTML = '';
+    const arr = [];
+
+    snap.forEach(ch => {
+      arr.push([ch.key, ch.val()]);
+    });
+
+    arr.sort((a, b) => b[1].timestamp - a[1].timestamp);
+
+    arr.forEach(([k,p])=>postsEl.appendChild(renderPost(k,p)));
+  });
+}
+
+function loadExplorerSection() {
+  postsEl.innerHTML = `
+    <div class="explore-search">
+      <h2 style="margin-bottom:16px;font-size:24px;">🔍 Explorar</h2>
+      <input type="text" id="searchInput" placeholder="Buscar usuarios o posts..." />
+      <div class="explore-tabs">
+        <button class="explore-tab active" data-filter="recientes">📅 Recientes</button>
+        <button class="explore-tab" data-filter="tendencias">🔥 Tendencias</button>
+      </div>
+    </div>
+    <div class="explore-results" id="exploreResults"></div>
+  `;
+
+  let currentFilter = 'recientes';
+  
+  // Configurar tabs
+  document.querySelectorAll('.explore-tab').forEach(tab => {
+    tab.onclick = () => {
+      document.querySelectorAll('.explore-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentFilter = tab.dataset.filter;
+      performSearch(document.getElementById('searchInput').value.trim(), currentFilter);
+    };
+  });
+
+  // Configurar búsqueda
+  const searchInput = document.getElementById('searchInput');
+  let searchTimeout;
+  
+  searchInput.oninput = (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      performSearch(e.target.value.trim(), currentFilter);
+    }, 300);
+  };
+
+  // Cargar resultados iniciales
+  performSearch('', currentFilter);
+}
+
+function performSearch(searchTerm, filter) {
+  const resultsContainer = document.getElementById('exploreResults');
+  if (!resultsContainer) return;
+
+  resultsContainer.innerHTML = '<div style="text-align:center;padding:20px;">Buscando...</div>';
+
+  const postsRef = ref(db, 'xposts');
+  const postsQuery = query(postsRef, limitToLast(100));
+
+  onValue(postsQuery, (snap) => {
+    resultsContainer.innerHTML = '';
+    
+    const posts = [];
+    const users = new Set();
+    
+    snap.forEach(ch => {
+      const post = ch.val();
+      posts.push([ch.key, post]);
+      users.add(post.user);
+    });
+
+    // Si hay término de búsqueda
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      
+      // Buscar usuarios
+      const matchingUsers = Array.from(users).filter(user => 
+        user.toLowerCase().includes(searchLower)
+      );
+
+      if (matchingUsers.length > 0) {
+        const usersSection = document.createElement('div');
+        usersSection.innerHTML = '<h3 style="margin-bottom:12px;font-size:18px;">👤 Usuarios</h3>';
+        resultsContainer.appendChild(usersSection);
+
+        matchingUsers.forEach(username => {
+          const userProfileRef = ref(db, `userProfiles/${username}`);
+          onValue(userProfileRef, (userSnap) => {
+            const profile = userSnap.val();
+            const avatar = profile?.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${username}`;
+            
+            const userResult = document.createElement('div');
+            userResult.className = 'user-result';
+            userResult.innerHTML = `
+              <img src="${avatar}" style="width:48px;height:48px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.1);" />
+              <div style="flex:1;">
+                <div style="font-weight:700;font-size:16px;">${username}</div>
+              </div>
+              <span style="color:#667eea;font-size:14px;">Ver perfil →</span>
+            `;
+            userResult.onclick = () => viewUserProfile(username);
+            resultsContainer.appendChild(userResult);
+          }, { onlyOnce: true });
+        });
+      }
+
+      // Buscar posts
+      const matchingPosts = posts.filter(([key, post]) => 
+        post.text.toLowerCase().includes(searchLower) ||
+        post.user.toLowerCase().includes(searchLower)
+      );
+
+      if (matchingPosts.length > 0) {
+        const postsSection = document.createElement('div');
+        postsSection.innerHTML = '<h3 style="margin:20px 0 12px 0;font-size:18px;">💬 Posts</h3>';
+        resultsContainer.appendChild(postsSection);
+
+        // Ordenar según filtro
+        if (filter === 'tendencias') {
+          matchingPosts.sort((a, b) => (b[1].likes || 0) - (a[1].likes || 0));
+        } else {
+          matchingPosts.sort((a, b) => b[1].timestamp - a[1].timestamp);
+        }
+
+        matchingPosts.forEach(([k, p]) => {
+          resultsContainer.appendChild(renderPost(k, p));
+        });
+      }
+
+      if (matchingUsers.length === 0 && matchingPosts.length === 0) {
+        resultsContainer.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">No se encontraron resultados para "' + escapeHtml(searchTerm) + '"</div>';
+      }
+    } else {
+      // Sin búsqueda, mostrar todos los posts según filtro
+      const postsSection = document.createElement('div');
+      postsSection.innerHTML = `<h3 style="margin-bottom:12px;font-size:18px;">${filter === 'tendencias' ? '🔥 Tendencias' : '📅 Recientes'}</h3>`;
+      resultsContainer.appendChild(postsSection);
+
+      if (filter === 'tendencias') {
+        posts.sort((a, b) => (b[1].likes || 0) - (a[1].likes || 0));
+      } else {
+        posts.sort((a, b) => b[1].timestamp - a[1].timestamp);
+      }
+
+      posts.slice(0, 20).forEach(([k, p]) => {
+        resultsContainer.appendChild(renderPost(k, p));
+      });
+    }
+  }, { onlyOnce: true });
+}
+
+function loadFollowingSection() {
+  postsEl.innerHTML = '<h2 style="margin-bottom:20px;font-size:24px;">Usuarios que sigues</h2>';
+  
+  const followingRef = ref(db, `following/${currentUser.username}`);
+  
+  onValue(followingRef, (snap) => {
+    const following = snap.val();
+    
+    if (!following || Object.keys(following).length === 0) {
+      postsEl.innerHTML += '<div style="text-align:center;padding:40px;color:#999;">No sigues a nadie aún. ¡Explora y encuentra usuarios interesantes!</div>';
+      return;
+    }
+    
+    const container = document.createElement('div');
+    container.style.cssText = 'display:grid;gap:16px;';
+    
+    Object.keys(following).forEach(username => {
+      // Obtener info del usuario
+      const userProfileRef = ref(db, `userProfiles/${username}`);
+      onValue(userProfileRef, (userSnap) => {
+        const profile = userSnap.val();
+        const avatar = profile?.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${username}`;
+        
+        const userCard = document.createElement('div');
+        userCard.className = 'post';
+        userCard.style.cursor = 'pointer';
+        userCard.innerHTML = `
+          <div class="meta">
+            <img class="profileIcon" src="${avatar}" />
+            <div style="flex:1;">
+              <div class="username">${username}</div>
+            </div>
+            <button style="padding:8px 16px;border:none;border-radius:8px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;cursor:pointer;font-weight:600;">Ver perfil</button>
+          </div>
+        `;
+        
+        userCard.onclick = () => viewUserProfile(username);
+        container.appendChild(userCard);
+      }, { onlyOnce: true });
+    });
+    
+    postsEl.appendChild(container);
+  }, { onlyOnce: true });
+}
+
+function saveProfile() {
+  const name = document.getElementById('editName').value.trim();
+  const avatar = document.getElementById('editAvatar').value.trim();
+  const banner = document.getElementById('editBanner').value.trim();
+  const allowDMFrom = document.getElementById('allowDMFrom')?.value || 'everyone';
+  
+  if(!name) return alert('Nombre inválido');
+
+  const oldUsername = currentUser.username;
+  const newAvatar = avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${name}`;
+  const newBanner = banner || `https://api.dicebear.com/7.x/shapes/svg?seed=${name}`;
+
+  currentUser = {
+    username: name,
+    avatar: newAvatar,
+    banner: newBanner,
+    userId: currentUserId
+  };
+  
+  localStorage.setItem('xchat_user', JSON.stringify(currentUser));
+  
+  // Actualizar perfil en Firebase
+  const userProfileRef = ref(db, `userProfiles/${name}`);
+  runTransaction(userProfileRef, (profile) => {
+    if (!profile) profile = {};
+    profile.username = name;
+    profile.avatar = newAvatar;
+    profile.banner = newBanner;
+    profile.userId = currentUserId;
+    profile.allowDMFrom = allowDMFrom;
+    profile.updatedAt = Date.now();
+    // Mantener followers y verified si existen
+    return profile;
+  });
+  
+  // Actualizar todos los posts del usuario usando userId
+  const postsRef = ref(db, 'xposts');
+  onValue(postsRef, (snap) => {
+    snap.forEach((childSnap) => {
+      const post = childSnap.val();
+      if (post.userId === currentUserId) {
+        const postRef = ref(db, `xposts/${childSnap.key}`);
+        runTransaction(postRef, (p) => {
+          if (p) {
+            p.user = name;
+            p.avatar = newAvatar;
+          }
+          return p;
+        });
+      }
+    });
+  }, { onlyOnce: true });
+  
+  // Actualizar comentarios del usuario usando userId
+  const allCommentsRef = ref(db, 'comments');
+  onValue(allCommentsRef, (snap) => {
+    snap.forEach((postSnap) => {
+      postSnap.forEach((commentSnap) => {
+        const comment = commentSnap.val();
+        if (comment.userId === currentUserId) {
+          const commentRef = ref(db, `comments/${postSnap.key}/${commentSnap.key}`);
+          runTransaction(commentRef, (c) => {
+            if (c) {
+              c.user = name;
+              c.avatar = newAvatar;
+            }
+            return c;
+          });
+        }
+      });
+    });
+  }, { onlyOnce: true });
+  
+  alert('Perfil actualizado. Los cambios se aplicarán en breve.');
+  loadConfigSection();
+}
+
+function togglePin(postId, currentPinned) {
+  const postRef = ref(db, 'xposts/' + postId);
+  
+  runTransaction(postRef, (p) => {
+    if (p) {
+      p.pinned = !currentPinned;
+    }
+    return p;
+  }).then(() => {
+    alert(currentPinned ? 'Post desfijado' : 'Post fijado');
+  });
+}
+
+function viewUserProfile(username) {
+  if (currentListener) {
+    currentListener();
+    currentListener = null;
+  }
+  
+  postsEl.innerHTML = '<div style="text-align:center;padding:20px;">Cargando perfil...</div>';
+  
+  // Obtener info del perfil
+  const userProfileRef = ref(db, `userProfiles/${username}`);
+  onValue(userProfileRef, (snap) => {
+    const profile = snap.val();
+    
+    const avatar = profile?.avatar || `https://api.dicebear.com/7.x/thumbs/svg?seed=${username}`;
+    const banner = profile?.banner || `https://api.dicebear.com/7.x/shapes/svg?seed=${username}`;
+    
+    postsEl.innerHTML = '';
+    
+    // Botón de volver
+    const backBtn = document.createElement('button');
+    backBtn.textContent = '← Volver';
+    backBtn.style.cssText = 'margin-bottom:20px;padding:10px 20px;border:none;border-radius:12px;background:rgba(255,255,255,0.95);cursor:pointer;font-weight:600;';
+    backBtn.onclick = () => loadSection('descubre');
+    postsEl.appendChild(backBtn);
+    
+    // Header del perfil
+    const profileHeader = document.createElement('div');
+    profileHeader.className = 'user-profile-header';
+    
+    // Verificar si seguimos a este usuario
+    const isFollowing = isUserFollowing(username);
+    const isOwnProfile = username === currentUser.username;
+    
+    // Contar posts del usuario y seguidores
+    const postsRef = ref(db, 'xposts');
+    onValue(postsRef, (postsSnap) => {
+      let postCount = 0;
+      postsSnap.forEach((childSnap) => {
+        if (childSnap.val().user === username) postCount++;
+      });
+      
+      // Obtener seguidores
+      const followersRef = ref(db, `followers/${username}`);
+      onValue(followersRef, (followSnap) => {
+        const followers = followSnap.val() || {};
+        const followerCount = Object.keys(followers).length;
+        
+        // Obtener siguiendo
+        const followingRef = ref(db, `following/${username}`);
+        onValue(followingRef, (followingSnap) => {
+          const following = followingSnap.val() || {};
+          const followingCount = Object.keys(following).length;
+          
+          const followBtn = !isOwnProfile ? `
+            <button id="followBtn" style="margin-top:12px;padding:10px 24px;border:none;border-radius:12px;background:${isFollowing ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};color:#fff;cursor:pointer;font-weight:600;">
+              ${isFollowing ? 'Dejar de seguir' : 'Seguir'}
+            </button>
+          ` : '';
+          
+          // Verificar si pueden chatear (se siguen mutuamente)
+          const iFollowThem = isUserFollowing(username);
+          const theyFollowMe = Object.keys(followers).includes(currentUser.username);
+          const canChat = iFollowThem && theyFollowMe && !isOwnProfile;
+          
+          const chatBtn = canChat ? `
+            <button id="chatBtn" style="margin-top:12px;margin-left:8px;padding:10px 24px;border:none;border-radius:12px;background:linear-gradient(135deg, #10b981 0%, #059669 100%);color:#fff;cursor:pointer;font-weight:600;">
+              💬 Chat
+            </button>
+          ` : '';
+          
+          profileHeader.innerHTML = `
+            <div class="user-profile-banner" style="background-image:url('${banner}');background-size:cover;background-position:center;"></div>
+            <div class="user-profile-info">
+              <img src="${avatar}" class="user-profile-avatar" />
+              <div class="user-profile-name">${username}</div>
+              <div class="user-profile-stats">
+                <div><strong>${postCount}</strong> Posts</div>
+                <div><strong>${followerCount}</strong> Seguidores</div>
+                <div><strong>${followingCount}</strong> Siguiendo</div>
+              </div>
+              <div>
+                ${followBtn}
+                ${chatBtn}
+              </div>
+            </div>
+          `;
+          
+          postsEl.appendChild(profileHeader);
+          
+          // Configurar botón de seguir
+          if (!isOwnProfile) {
+            document.getElementById('followBtn').onclick = () => toggleFollow(username);
+            
+            // Configurar botón de chat si existe
+            if (canChat) {
+              document.getElementById('chatBtn').onclick = () => openChat(username);
+            }
+          }
+          
+          // Botón para compartir perfil
+          const shareProfileBtn = document.createElement('button');
+          shareProfileBtn.textContent = '🔗 Compartir perfil';
+          shareProfileBtn.style.cssText = 'margin:10px 0 20px 0;padding:10px 20px;border:none;border-radius:12px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;cursor:pointer;font-weight:600;';
+          shareProfileBtn.onclick = () => {
+            const url = location.origin + location.pathname + `?user=${username}`;
+            navigator.clipboard.writeText(url);
+            alert('¡Link del perfil copiado!');
+          };
+          postsEl.appendChild(shareProfileBtn);
+          
+          // Título de posts
+          const postsTitle = document.createElement('h3');
+          postsTitle.textContent = 'Posts';
+          postsTitle.style.cssText = 'margin:20px 0 16px 0;font-size:20px;';
+          postsEl.appendChild(postsTitle);
+          
+          // Posts del usuario
+          const userPostsContainer = document.createElement('div');
+          userPostsContainer.id = 'userPostsContainer';
+          postsEl.appendChild(userPostsContainer);
+          
+          loadUserPosts(username);
+        }, { onlyOnce: true });
+      }, { onlyOnce: true });
+    }, { onlyOnce: true });
+  }, { onlyOnce: true });
+}
+
+function isUserFollowing(username) {
+  const following = JSON.parse(localStorage.getItem('twivo_following') || '{}');
+  return following[username] === true;
+}
+
+function toggleFollow(username) {
+  const following = JSON.parse(localStorage.getItem('twivo_following') || '{}');
+  const isFollowing = following[username] === true;
+  
+  if (isFollowing) {
+    // Dejar de seguir
+    delete following[username];
+    
+    // Decrementar contador
+    const userProfileRef = ref(db, `userProfiles/${username}`);
+    runTransaction(userProfileRef, (profile) => {
+      if (profile) {
+        profile.followers = (profile.followers || 1) - 1;
+      }
+      return profile;
+    });
+    
+    const followingRef = ref(db, `following/${currentUser.username}/${username}`);
+    set(followingRef, null);
+  } else {
+    // Seguir
+    following[username] = true;
+    
+    // Incrementar contador
+    const userProfileRef = ref(db, `userProfiles/${username}`);
+    runTransaction(userProfileRef, (profile) => {
+      if (profile) {
+        profile.followers = (profile.followers || 0) + 1;
+      }
+      return profile;
+    });
+    
+    const followingRef = ref(db, `following/${currentUser.username}/${username}`);
+    set(followingRef, {
+      username: username,
+      timestamp: Date.now()
+    });
+    
+    // Crear notificación
+    createNotification(username, 'follow', `${currentUser.username} ahora te sigue`, currentUser.username);
+  }
+  
+  localStorage.setItem('twivo_following', JSON.stringify(following));
+  
+  // Recargar el perfil para actualizar el botón
+  viewUserProfile(username);
+}
+
+function loadUserPosts(username) {
+  const postsRef = ref(db, 'xposts');
+  const postsQuery = query(postsRef, limitToLast(100));
+  
+  onValue(postsQuery, (snap) => {
+    const container = document.getElementById('userPostsContainer');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    const arr = [];
+    
+    snap.forEach(ch => {
+      const post = ch.val();
+      if (post.user === username) {
+        arr.push([ch.key, post]);
+      }
+    });
+    
+    if (arr.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:40px;color:#999;">Este usuario no ha publicado nada aún.</div>';
+      return;
+    }
+    
+    // Ordenar: primero fijados, luego por fecha
+    arr.sort((a, b) => {
+      if (a[1].pinned && !b[1].pinned) return -1;
+      if (!a[1].pinned && b[1].pinned) return 1;
+      return b[1].timestamp - a[1].timestamp;
+    });
+    
+    arr.forEach(([k, p]) => container.appendChild(renderPost(k, p, false, true)));
+  });
+}
+
+function logout() {
+  if (confirm('¿Cerrar sesión?')) {
+    localStorage.removeItem('xchat_user');
+    localStorage.removeItem('twivo_user_id');
+    location.reload();
+  }
+}
+
+// Funciones de notificaciones
+function createNotification(toUser, type, message, fromUser) {
+  const notifRef = ref(db, `notifications/${toUser}`);
+  const newNotifRef = push(notifRef);
+  
+  const notifData = {
+    type: type,
+    message: message,
+    from: fromUser,
+    timestamp: Date.now(),
+    read: false
+  };
+  
+  set(newNotifRef, notifData).then(() => {
+    // Después de guardarlo en Firebase, moverlo a localStorage del usuario
+    setTimeout(() => {
+      // Eliminar de Firebase
+      set(newNotifRef, null);
+      
+      // Guardar en localStorage (si es el usuario actual)
+      if (toUser === currentUser.username) {
+        const localNotifs = JSON.parse(localStorage.getItem('twivo_notifications') || '[]');
+        localNotifs.push({
+          id: newNotifRef.key,
+          ...notifData
+        });
+        // Mantener solo las últimas 50 notificaciones
+        if (localNotifs.length > 50) {
+          localNotifs.shift();
+        }
+        localStorage.setItem('twivo_notifications', JSON.stringify(localNotifs));
+      }
+    }, 2000); // 2 segundos para que el usuario la vea en Firebase
+  });
+  
+  // Notificación del navegador
+  if (toUser !== currentUser.username) {
+    showBrowserNotification('Twivo', message);
+  }
+}
+
+// Sección de configuración
+function loadConfigSection() {
+  const u = currentUser;
+  
+  // Obtener configuración actual
+  const userProfileRef = ref(db, `userProfiles/${u.username}`);
+  onValue(userProfileRef, async (snap) => {
+    const profile = snap.val();
+    const allowDMFrom = profile?.allowDMFrom || 'everyone';
+    const verified = profile?.verified || false;
+    const followers = profile?.followers || 0;
+    
+    // Verificar si puede verificarse
+    const canVerify = followers >= 10000 && !verified && !isOwner(u.username);
+    
+    postsEl.innerHTML = `
+      <div class="profile-container">
+        <h2>⚙️ Configuración</h2>
+        
+        <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">👤 Perfil</h3>
+        <label>Nombre de usuario:</label>
+        <input id="editName" value="${u.username}" />
+        <label>Avatar URL:</label>
+        <input id="editAvatar" value="${u.avatar || ''}" placeholder="https://..." />
+        <label>Banner URL:</label>
+        <input id="editBanner" value="${u.banner || ''}" placeholder="https://..." />
+        
+        <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">💬 Mensajes</h3>
+        <label>¿Quién puede enviarte mensajes?</label>
+        <select id="allowDMFrom" style="width:100%;padding:12px;margin:8px 0;border-radius:12px;border:2px solid #e2e8f0;font-size:15px;">
+          <option value="everyone" ${allowDMFrom === 'everyone' ? 'selected' : ''}>Todo el mundo</option>
+          <option value="followers" ${allowDMFrom === 'followers' ? 'selected' : ''}>Solo quienes me siguen</option>
+        </select>
+        
+        <button id="saveProfileBtn">Guardar cambios</button>
+        
+        ${canVerify ? `
+          <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">✅ Verificación</h3>
+          <p style="margin-bottom:12px;color:#666;">Tienes ${followers.toLocaleString()} seguidores. ¡Puedes verificar tu cuenta!</p>
+          <button id="verifyBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg, #10b981 0%, #059669 100%);color:#fff;cursor:pointer;font-weight:600;margin-top:8px;">
+            ✅ Verificar mi cuenta
+          </button>
+        ` : verified ? `
+          <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">✅ Verificado</h3>
+          <p style="color:#10b981;">Tu cuenta está verificada ✓</p>
+        ` : ''}
+        
+        <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">🔔 Notificaciones</h3>
+        <button id="enableNotifsBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);color:#fff;cursor:pointer;font-weight:600;margin-top:8px;">
+          Activar notificaciones del navegador
+        </button>
+        
+        <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">📜 Legal</h3>
+        <button id="privacyBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:rgba(255,255,255,0.5);cursor:pointer;font-weight:600;margin-top:8px;">
+          Política de Privacidad
+        </button>
+        <button id="securityBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:rgba(255,255,255,0.5);cursor:pointer;font-weight:600;margin-top:8px;">
+          Seguridad y Datos
+        </button>
+        
+        <h3 style="margin-top:24px;margin-bottom:12px;font-size:18px;">⚠️ Zona de Peligro</h3>
+        <button id="deleteAccountBtn" style="width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);color:#fff;cursor:pointer;font-weight:600;margin-top:8px;">
+          🗑️ Eliminar cuenta permanentemente
+        </button>
+        
+        <button id="logoutBtn" style="margin-top:24px;width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg, #fc5c7d 0%, #6a82fb 100%);color:#fff;cursor:pointer;font-weight:600;">
+          🚪 Cerrar sesión
+        </button>
+      </div>`;
+    
+    document.getElementById('saveProfileBtn').onclick = saveProfile;
+    document.getElementById('logoutBtn').onclick = logout;
+    document.getElementById('deleteAccountBtn').onclick = deleteAccount;
+    document.getElementById('enableNotifsBtn').onclick = () => {
+      requestNotificationPermission();
+      alert('Permiso solicitado. Por favor, acepta las notificaciones en tu navegador.');
+    };
+    document.getElementById('privacyBtn').onclick = showPrivacyPolicy;
+    document.getElementById('securityBtn').onclick = showSecurityPolicy;
+    
+    if (canVerify) {
+      document.getElementById('verifyBtn').onclick = verifyAccount;
+    }
+  }, { onlyOnce: true });
+}
+
+async function deleteAccount() {
+  const confirmed = confirm('⚠️ ADVERTENCIA: Esta acción es PERMANENTE.\n\n¿Estás seguro de que quieres eliminar tu cuenta?\n\nSe eliminará:\n- Tu perfil\n- Todos tus posts\n- Todos tus comentarios\n- Tu cuenta de inicio de sesión\n\nEsta acción NO se puede deshacer.');
+  
+  if (!confirmed) return;
+  
+  const doubleCheck = prompt('Escribe "ELIMINAR" (en mayúsculas) para confirmar:');
+  
+  if (doubleCheck !== 'ELIMINAR') {
+    return alert('Eliminación cancelada.');
+  }
+  
+  try {
+    const userId = currentUserId;
+    const username = currentUser.username;
+    
+    // Eliminar cuenta de accounts
+    const accountsRef = ref(db, 'accounts');
+    const snapshot = await get(accountsRef);
+    snapshot.forEach((child) => {
+      if (child.val().userId === userId) {
+        set(ref(db, `accounts/${child.key}`), null);
+      }
+    });
+    
+    // Eliminar perfil
+    const profileRef = ref(db, `userProfiles/${username}`);
+    await set(profileRef, null);
+    
+    // Eliminar posts
+    const postsRef = ref(db, 'xposts');
+    const postsSnap = await get(postsRef);
+    postsSnap.forEach((child) => {
+      if (child.val().userId === userId) {
+        set(ref(db, `xposts/${child.key}`), null);
+      }
+    });
+    
+    // Eliminar comentarios
+    const commentsRef = ref(db, 'comments');
+    const commentsSnap = await get(commentsRef);
+    commentsSnap.forEach((postSnap) => {
+      postSnap.forEach((commentSnap) => {
+        if (commentSnap.val().userId === userId) {
+          set(ref(db, `comments/${postSnap.key}/${commentSnap.key}`), null);
+        }
+      });
+    });
+    
+    // Limpiar localStorage
+    localStorage.clear();
+    
+    alert('Tu cuenta ha sido eliminada permanentemente.');
+    location.reload();
+  } catch (error) {
+    console.error('Error al eliminar cuenta:', error);
+    alert('Error al eliminar la cuenta. Inténtalo de nuevo.');
+  }
+}
+
+async function verifyAccount() {
+  const userProfileRef = ref(db, `userProfiles/${currentUser.username}`);
+  
+  await runTransaction(userProfileRef, (profile) => {
+    if (profile) {
+      profile.verified = true;
+    }
+    return profile;
+  });
+  
+  alert('¡Tu cuenta ha sido verificada! ✓');
+  loadConfigSection();
+}
+
+function showPrivacyPolicy() {
+  postsEl.innerHTML = `
+    <div class="profile-container">
+      <button onclick="loadConfigSection()" style="margin-bottom:20px;padding:10px 20px;border:none;border-radius:12px;background:rgba(255,255,255,0.95);cursor:pointer;font-weight:600;">← Volver</button>
+      
+      <h2>📜 Política de Privacidad</h2>
+      
+      <div style="margin-top:20px;line-height:1.8;color:#4a5568;">
+        <h3 style="margin-top:20px;margin-bottom:10px;">1. Información que recopilamos</h3>
+        <p>Twivo recopila la información que proporcionas al crear tu cuenta, como tu nombre de usuario y avatar. También guardamos los posts, comentarios y mensajes que envías.</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">2. Cómo usamos tu información</h3>
+        <p>Utilizamos tu información para proporcionar el servicio de Twivo, permitiéndote publicar contenido, interactuar con otros usuarios y utilizar la mensajería.</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">3. Compartir información</h3>
+        <p>Tu perfil y posts públicos son visibles para todos los usuarios de Twivo. Los mensajes privados solo son visibles entre tú y el destinatario.</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">4. Tus derechos</h3>
+        <p>Puedes eliminar tu contenido en cualquier momento. Puedes cerrar sesión y dejar de usar Twivo cuando quieras.</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">5. Seguridad</h3>
+        <p>Utilizamos Firebase para almacenar datos de forma segura. Los mensajes de chat usan PeerJS para comunicación P2P.</p>
+        
+        <p style="margin-top:20px;font-size:12px;color:#999;">Última actualización: ${new Date().toLocaleDateString()}</p>
+      </div>
+    </div>
+  `;
+}
+
+function showSecurityPolicy() {
+  postsEl.innerHTML = `
+    <div class="profile-container">
+      <button onclick="loadConfigSection()" style="margin-bottom:20px;padding:10px 20px;border:none;border-radius:12px;background:rgba(255,255,255,0.95);cursor:pointer;font-weight:600;">← Volver</button>
+      
+      <h2>🔒 Seguridad y Datos</h2>
+      
+      <div style="margin-top:20px;line-height:1.8;color:#4a5568;">
+        <h3 style="margin-top:20px;margin-bottom:10px;">Identificación de usuario</h3>
+        <p>Cada usuario tiene un ID único almacenado localmente. Este ID verifica la propiedad de posts y mensajes sin exponer información personal.</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">Mensajería P2P</h3>
+        <p>Los chats utilizan PeerJS para comunicación directa entre usuarios. Los mensajes se guardan en Firebase como respaldo, pero la comunicación en tiempo real es peer-to-peer.</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">Almacenamiento de datos</h3>
+        <p>• Posts y comentarios: Firebase Realtime Database<br>
+        • Mensajes: Firebase + PeerJS<br>
+        • Perfil y preferencias: Firebase + LocalStorage</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">Permisos</h3>
+        <p>• Notificaciones: Para recibir alertas de mensajes y actividad<br>
+        • Cámara/Micrófono: Para videollamadas (solo cuando las inicies)<br>
+        • Archivos: Para enviar imágenes y audio en chats</p>
+        
+        <h3 style="margin-top:20px;margin-bottom:10px;">Eliminar datos</h3>
+        <p>Puedes eliminar tus posts, comentarios y mensajes en cualquier momento. Al cerrar sesión, los datos locales se borran.</p>
+      </div>
+    </div>
+  `;
+}
+
+window.loadConfigSection = loadConfigSection;
+
+// Sección de notificaciones
+function loadNotificationsSection() {
+  postsEl.innerHTML = '<h2 style="margin-bottom:20px;font-size:24px;">🔔 Notificaciones</h2>';
+  
+  // Primero cargar desde localStorage
+  const localNotifs = JSON.parse(localStorage.getItem('twivo_notifications') || '[]');
+  
+  // Luego cargar desde Firebase (nuevas)
+  const notifsRef = ref(db, `notifications/${currentUser.username}`);
+  
+  onValue(notifsRef, (snap) => {
+    const firebaseNotifs = [];
+    
+    if (snap.val()) {
+      Object.entries(snap.val()).forEach(([key, val]) => {
+        firebaseNotifs.push({key, ...val});
+      });
+    }
+    
+    // Combinar notificaciones
+    const allNotifs = [...firebaseNotifs, ...localNotifs];
+    
+    if (allNotifs.length === 0) {
+      postsEl.innerHTML += '<div style="text-align:center;padding:40px;color:#999;">No tienes notificaciones.</div>';
+      return;
+    }
+    
+    const container = document.createElement('div');
+    allNotifs.sort((a, b) => b.timestamp - a.timestamp);
+    
+    allNotifs.forEach(notif => {
+      const notifDiv = document.createElement('div');
+      notifDiv.className = `notification-item ${!notif.read ? 'unread' : ''}`;
+      
+      let icon = '🔔';
+      if (notif.type === 'like') icon = '❤️';
+      if (notif.type === 'follow') icon = '👤';
+      if (notif.type === 'message') icon = '💬';
+      if (notif.type === 'comment') icon = '💭';
+      
+      notifDiv.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-size:24px;">${icon}</span>
+          <div style="flex:1;">
+            <div style="font-weight:600;margin-bottom:4px;">${notif.message}</div>
+            <div style="font-size:12px;color:#999;">${new Date(notif.timestamp).toLocaleString()}</div>
+          </div>
+        </div>
+      `;
+      
+      notifDiv.onclick = () => {
+        // Marcar como leída en localStorage
+        if (notif.id) {
+          const localNotifs = JSON.parse(localStorage.getItem('twivo_notifications') || '[]');
+          const index = localNotifs.findIndex(n => n.id === notif.id);
+          if (index !== -1) {
+            localNotifs[index].read = true;
+            localStorage.setItem('twivo_notifications', JSON.stringify(localNotifs));
+          }
+        }
+        
+        // Navegar según el tipo
+        if (notif.type === 'message') {
+          openChat(notif.from);
+        } else if (notif.type === 'follow') {
+          viewUserProfile(notif.from);
+        }
+      };
+      
+      container.appendChild(notifDiv);
+    });
+    
+    // Reemplazar el contenido
+    const existingContainer = postsEl.querySelector('div:not(h2)');
+    if (existingContainer) {
+      existingContainer.remove();
+    }
+    postsEl.appendChild(container);
+  });
+}
+
+// Sección Más
+function loadMoreSection() {
+  postsEl.innerHTML = `
+    <h2 style="margin-bottom:20px;font-size:24px;">⚙️ Más opciones</h2>
+    <div style="display:grid;gap:12px;">
+      <button onclick="alert('Función en desarrollo')" style="padding:16px;border:none;border-radius:12px;background:rgba(255,255,255,0.95);cursor:pointer;font-weight:600;text-align:left;">
+        ⚙️ Configuración
+      </button>
+      <button onclick="alert('Función en desarrollo')" style="padding:16px;border:none;border-radius:12px;background:rgba(255,255,255,0.95);cursor:pointer;font-weight:600;text-align:left;">
+        ℹ️ Acerca de Twivo
+      </button>
+      <button onclick="alert('Función en desarrollo')" style="padding:16px;border:none;border-radius:12px;background:rgba(255,255,255,0.95);cursor:pointer;font-weight:600;text-align:left;">
+        🎨 Personalización
+      </button>
+    </div>
+  `;
+}
+
+// Generar ID único para chat
+function generateChatId(user1, user2) {
+  return [user1, user2].sort().join('_');
+}
+
+// Abrir chat
+function openChat(username) {
+  if (currentListener) {
+    currentListener();
+    currentListener = null;
+  }
+  
+  postsEl.innerHTML = '<div style="text-align:center;padding:20px;">Cargando chat...</div>';
+  
+  // Obtener peerId del otro usuario
+  const userProfileRef = ref(db, `userProfiles/${username}`);
+  onValue(userProfileRef, (snap) => {
+    const profile = snap.val();
+    const otherPeerId = profile?.peerId;
+    
+    if (!otherPeerId) {
+      alert('El usuario no está disponible para chat en este momento.');
+      return;
+    }
+    
+    postsEl.innerHTML = '';
+    
+    // Botón volver
+    const backBtn = document.createElement('button');
+    backBtn.textContent = '← Volver';
+    backBtn.style.cssText = 'margin-bottom:20px;padding:10px 20px;border:none;border-radius:12px;background:rgba(255,255,255,0.95);cursor:pointer;font-weight:600;';
+    backBtn.onclick = () => viewUserProfile(username);
+    postsEl.appendChild(backBtn);
+    
+    // Contenedor del chat
+    const chatContainer = document.createElement('div');
+    chatContainer.className = 'chat-container';
+    chatContainer.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3>💬 Chat con ${username}</h3>
+        <div style="display:flex;gap:8px;">
+          <button id="voiceCallBtn" style="padding:10px 16px;border:none;border-radius:12px;background:linear-gradient(135deg, #10b981 0%, #059669 100%);color:#fff;cursor:pointer;font-weight:600;">📞 Llamar</button>
+          <button id="videoCallBtn" style="padding:10px 16px;border:none;border-radius:12px;background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);color:#fff;cursor:pointer;font-weight:600;">📹 Video</button>
+        </div>
+      </div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div class="chat-input-container">
+        <input type="file" id="fileInput" accept="image/*" style="display:none;" />
+        <button onclick="document.getElementById('fileInput').click()" style="padding:12px;border:none;border-radius:12px;background:#e2e8f0;cursor:pointer;">📎</button>
+        <button id="audioRecordBtn" class="audio-recorder-btn">🎤</button>
+        <input type="text" id="chatInput" class="chat-input" placeholder="Escribe un mensaje..." />
+        <button id="sendChatBtn" class="chat-send-btn">Enviar</button>
+      </div>
+    `;
+    postsEl.appendChild(chatContainer);
+    
+    // Cargar mensajes existentes
+    loadChatMessages(username);
+    
+    // Configurar envío
+    document.getElementById('sendChatBtn').onclick = () => sendChatMessage(username, otherPeerId);
+    document.getElementById('chatInput').onkeypress = (e) => {
+      if (e.key === 'Enter') sendChatMessage(username, otherPeerId);
+    };
+    
+    // Configurar envío de archivos
+    document.getElementById('fileInput').onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        sendMediaMessage(file, username, otherPeerId);
+      }
+    };
+    
+    // Configurar grabación de audio
+    document.getElementById('audioRecordBtn').onclick = () => toggleAudioRecording(username, otherPeerId);
+    
+    // Configurar llamadas
+    document.getElementById('voiceCallBtn').onclick = () => startCall(username, otherPeerId, false);
+    document.getElementById('videoCallBtn').onclick = () => startCall(username, otherPeerId, true);
+    
+    // Conectar con peer si no está conectado
+    if (!activeConnections[otherPeerId]) {
+      const conn = peer.connect(otherPeerId);
+      setupConnection(conn);
+    }
+  }, { onlyOnce: true });
+}
+
+// Cargar mensajes del chat
+function loadChatMessages(username) {
+  const chatId = generateChatId(currentUser.username, username);
+  const messagesRef = ref(db, `chats/${chatId}/messages`);
+  
+  onValue(messagesRef, (snap) => {
+    const messagesContainer = document.getElementById('chatMessages');
+    if (!messagesContainer) return;
+    
+    messagesContainer.innerHTML = '';
+    
+    const messages = [];
+    snap.forEach(ch => {
+      const msg = ch.val();
+      msg.id = ch.key;
+      messages.push(msg);
+    });
+    
+    messages.sort((a, b) => a.timestamp - b.timestamp);
+    
+    messages.forEach(msg => {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `chat-message ${msg.from === currentUser.username ? 'own' : ''}`;
+      msgDiv.style.position = 'relative';
+      
+      let content = escapeHtml(msg.text || '');
+      
+      if (msg.type === 'image' && msg.media) {
+        content = `<img src="${msg.media}" class="chat-media" />`;
+      } else if (msg.type === 'audio' && msg.media) {
+        content = `<audio controls class="chat-audio" src="${msg.media}"></audio>`;
+      }
+      
+      const deleteBtn = msg.fromUserId === currentUserId ? 
+        `<div class="chat-message-actions"><button class="delete-message-btn" onclick="deleteMessage('${chatId}', '${msg.id}')">🗑️</button></div>` : '';
+      
+      msgDiv.innerHTML = `
+        ${deleteBtn}
+        <div class="chat-bubble">
+          ${content}
+          <div style="font-size:10px;opacity:0.7;margin-top:4px;">${new Date(msg.timestamp).toLocaleTimeString()}</div>
+        </div>
+      `;
+      
+      messagesContainer.appendChild(msgDiv);
+    });
+    
+    // Scroll al final
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  });
+}
+
+window.deleteMessage = function(chatId, messageId) {
+  if (confirm('¿Eliminar este mensaje?')) {
+    const messageRef = ref(db, `chats/${chatId}/messages/${messageId}`);
+    set(messageRef, null);
+  }
+};
+
+// Enviar mensaje de chat
+function sendChatMessage(toUsername, toPeerId) {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  
+  if (!text) return;
+  
+  const messageData = {
+    from: currentUser.username,
+    fromUserId: currentUserId,
+    to: toUsername,
+    text: text,
+    type: 'text',
+    timestamp: Date.now()
+  };
+  
+  // Guardar en Firebase
+  const chatId = generateChatId(currentUser.username, toUsername);
+  const messagesRef = ref(db, `chats/${chatId}/messages`);
+  const newMessageRef = push(messagesRef);
+  
+  set(newMessageRef, {
+    ...messageData,
+    id: newMessageRef.key
+  });
+  
+  // Enviar por PeerJS
+  if (activeConnections[toPeerId]) {
+    activeConnections[toPeerId].send(messageData);
+  }
+  
+  input.value = '';
+}
+
+// Enviar media
+function sendMediaMessage(file, toUsername, toPeerId) {
+  const reader = new FileReader();
+  
+  reader.onload = () => {
+    const base64 = reader.result;
+    const type = file.type.startsWith('image/') ? 'image' : 'audio';
+    
+    const messageData = {
+      from: currentUser.username,
+      fromUserId: currentUserId,
+      to: toUsername,
+      text: '',
+      type: type,
+      media: base64,
+      timestamp: Date.now()
+    };
+    
+    // Guardar en Firebase
+    const chatId = generateChatId(currentUser.username, toUsername);
+    const messagesRef = ref(db, `chats/${chatId}/messages`);
+    const newMessageRef = push(messagesRef);
+    
+    set(newMessageRef, {
+      ...messageData,
+      id: newMessageRef.key
+    });
+    
+    // Enviar por PeerJS
+    if (activeConnections[toPeerId]) {
+      activeConnections[toPeerId].send(messageData);
+    }
+  };
+  
+  reader.readAsDataURL(file);
+}
+
+// Grabación de audio
+function toggleAudioRecording(username, toPeerId) {
+  const btn = document.getElementById('audioRecordBtn');
+  
+  if (audioRecorder && audioRecorder.state === 'recording') {
+    // Detener grabación
+    audioRecorder.stop();
+    btn.classList.remove('recording');
+    btn.innerHTML = '🎤';
+  } else {
+    // Iniciar grabación
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        audioRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        
+        audioRecorder.ondataavailable = (e) => {
+          audioChunks.push(e.data);
+        };
+        
+        audioRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          
+          reader.onload = () => {
+            const base64 = reader.result;
+            
+            const messageData = {
+              from: currentUser.username,
+              fromUserId: currentUserId,
+              to: username,
+              text: '🎤 Mensaje de voz',
+              type: 'audio',
+              media: base64,
+              timestamp: Date.now()
+            };
+            
+            // Guardar en Firebase
+            const chatId = generateChatId(currentUser.username, username);
+            const messagesRef = ref(db, `chats/${chatId}/messages`);
+            const newMessageRef = push(messagesRef);
+            
+            set(newMessageRef, {
+              ...messageData,
+              id: newMessageRef.key
+            });
+            
+            // Enviar por PeerJS
+            if (activeConnections[toPeerId]) {
+              activeConnections[toPeerId].send(messageData);
+            }
+          };
+          
+          reader.readAsDataURL(audioBlob);
+          
+          // Detener el stream
+          stream.getTracks().forEach(track => track.stop());
+        };
+        
+        audioRecorder.start();
+        btn.classList.add('recording');
+        btn.innerHTML = '⏹️';
+      })
+      .catch(err => {
+        alert('No se pudo acceder al micrófono');
+        console.error(err);
+      });
+  }
+}
+
+// Iniciar llamada
+function startCall(username, toPeerId, video) {
+  const constraints = {
+    audio: true,
+    video: video
+  };
+  
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(stream => {
+      localStream = stream;
+      
+      // Crear UI de llamada
+      showCallUI(username, true, video);
+      
+      // Realizar llamada
+      currentCall = peer.call(toPeerId, stream);
+      
+      currentCall.on('stream', (remoteStream) => {
+        showRemoteStream(remoteStream, video);
+      });
+      
+      currentCall.on('close', () => {
+        endCall();
+      });
+    })
+    .catch(err => {
+      alert('No se pudo acceder a la cámara/micrófono');
+      console.error(err);
+    });
+}
+
+// Manejar llamada entrante
+function handleIncomingCall(call) {
+  const isVideo = call.metadata?.video || false;
+  
+  showCallUI(call.peer.replace('twivo_', ''), false, isVideo);
+  
+  document.getElementById('answerCallBtn').onclick = () => {
+    const constraints = {
+      audio: true,
+      video: isVideo
+    };
+    
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(stream => {
+        localStream = stream;
+        currentCall = call;
+        
+        call.answer(stream);
+        
+        call.on('stream', (remoteStream) => {
+          showRemoteStream(remoteStream, isVideo);
+        });
+        
+        call.on('close', () => {
+          endCall();
+        });
+      })
+      .catch(err => {
+        alert('No se pudo acceder a la cámara/micrófono');
+        console.error(err);
+        call.close();
+      });
+  };
+  
+  document.getElementById('declineCallBtn').onclick = () => {
+    call.close();
+    document.getElementById('callContainer')?.remove();
+  };
+}
+
+// Mostrar UI de llamada
+function showCallUI(username, isOutgoing, isVideo) {
+  const callDiv = document.createElement('div');
+  callDiv.id = 'callContainer';
+  callDiv.className = 'call-container';
+  
+  if (isOutgoing) {
+    callDiv.innerHTML = `
+      <h2 style="color:#fff;margin-bottom:20px;">${isVideo ? '📹' : '📞'} Llamando a ${username}...</h2>
+      <video id="localVideo" class="call-video" autoplay muted playsinline></video>
+      <video id="remoteVideo" class="call-video" autoplay playsinline style="display:none;"></video>
+      <div class="call-controls">
+        <button class="call-btn decline" onclick="endCall()">📵</button>
+      </div>
+    `;
+  } else {
+    callDiv.innerHTML = `
+      <h2 style="color:#fff;margin-bottom:20px;">${isVideo ? '📹' : '📞'} ${username} te está llamando...</h2>
+      <div class="call-controls">
+        <button id="answerCallBtn" class="call-btn answer">📞</button>
+        <button id="declineCallBtn" class="call-btn decline">📵</button>
+      </div>
+    `;
+  }
+  
+  document.body.appendChild(callDiv);
+  
+  if (isOutgoing && localStream) {
+    const localVideo = document.getElementById('localVideo');
+    if (localVideo) {
+      localVideo.srcObject = localStream;
+    }
+  }
+}
+
+// Mostrar stream remoto
+function showRemoteStream(stream, isVideo) {
+  const remoteVideo = document.getElementById('remoteVideo');
+  const localVideo = document.getElementById('localVideo');
+  
+  if (remoteVideo) {
+    remoteVideo.srcObject = stream;
+    remoteVideo.style.display = 'block';
+    
+    if (localVideo && isVideo) {
+      localVideo.style.maxWidth = '200px';
+      localVideo.style.position = 'absolute';
+      localVideo.style.bottom = '20px';
+      localVideo.style.right = '20px';
+    }
+  }
+}
+
+// Finalizar llamada
+function endCall() {
+  if (currentCall) {
+    currentCall.close();
+    currentCall = null;
+  }
+  
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+  
+  document.getElementById('callContainer')?.remove();
+}
+
+window.endCall = endCall;
+
+// Solicitar permiso para notificaciones del navegador
+function requestNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+// Mostrar notificación del navegador
+function showBrowserNotification(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, {
+      body: body,
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+      tag: 'twivo-notification'
+    });
+  }
+}
+</script>
+</body>
+</html>
