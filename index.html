@@ -862,6 +862,16 @@
     </div>
     <div id="posts"></div>
   </div>
+  <div style="margin-top:20px;">
+  <label data-i18n="language"></label>
+  <select id="languageSelect" style="width:100%;padding:12px;border-radius:12px;">
+    <option value="es">Español</option>
+    <option value="en">English</option>
+    <option value="fr">Français</option>
+    <option value="it">Italiano</option>
+  </select>
+</div>
+
 </div>
 
 <script type="module">
@@ -1443,6 +1453,18 @@ function initPeer() {
     console.error('Peer error:', err);
   });
 }
+
+  function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+}
+applyTranslations();
+
 
 function setupConnection(conn) {
   conn.on('open', () => {
@@ -3234,6 +3256,11 @@ function showBrowserNotification(title, body) {
       tag: 'twivo-notification'
     });
   }
+}
+  const langSelect = document.getElementById('languageSelect');
+if (langSelect) {
+  langSelect.value = currentLanguage;
+  langSelect.onchange = e => setLanguage(e.target.value);
 }
 </script>
 </body>
