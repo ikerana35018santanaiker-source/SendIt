@@ -1423,6 +1423,25 @@ let localStream = null;
 let audioRecorder = null;
 let audioChunks = [];
 
+const loginTab = document.getElementById('loginTab');
+const registerTab = document.getElementById('registerTab');
+const loginForm = document.getElementById('loginForm');
+const registerForm = document.getElementById('registerForm');
+
+loginTab.onclick = () => {
+  loginTab.classList.add("active");
+  registerTab.classList.remove("active");
+  loginForm.style.display = "block";
+  registerForm.style.display = "none";
+};
+
+registerTab.onclick = () => {
+  registerTab.classList.add("active");
+  loginTab.classList.remove("active");
+  loginForm.style.display = "none";
+  registerForm.style.display = "block";
+};
+
 function initPeer() {
   if (peer) return;
   
@@ -1528,7 +1547,7 @@ if (currentUser) {
 }
 
 document.getElementById('loginBtn').onclick = () => {
-  const uname = document.getElementById('user').value.trim();
+  const uname = document.getElementById('loginUser').value.trim();
   if (!uname) return alert('Escribe un nombre.');
 
   currentUser = {
@@ -1546,6 +1565,51 @@ document.getElementById('loginBtn').onclick = () => {
     createdAt: Date.now()
   });
 
+  location.reload();
+};
+
+document.getElementById('registerBtn').onclick = async () => {
+  const uname = document.getElementById('registerUser').value.trim();
+  const pass = document.getElementById('registerPassword').value.trim();
+  const pass2 = document.getElementById('registerPasswordConfirm').value.trim();
+
+  if (!uname) return alert('Escribe un nombre de usuario.');
+  if (!pass) return alert('Escribe una contraseña.');
+  if (pass !== pass2) return alert('Las contraseñas no coinciden.');
+
+  const userId = currentUserId;
+
+  // Crear el perfil del usuario
+  await set(ref(db, `userProfiles/${uname}`), {
+    username: uname,
+    avatar: `https://api.dicebear.com/7.x/thumbs/svg?seed=${uname}`,
+    banner: "",
+    followers: 0,
+    following: 0,
+    verified: false,
+    allowDMFrom: "everyone",
+    createdAt: Date.now()
+  });
+
+  // Guardar en accounts
+  const newAccRef = push(ref(db, 'accounts'));
+  await set(newAccRef, {
+    username: uname,
+    password: pass,
+    userId: userId,
+    createdAt: Date.now()
+  });
+
+  // Crear usuario actual
+  currentUser = {
+    username: uname,
+    avatar: `https://api.dicebear.com/7.x/thumbs/svg?seed=${uname}`,
+    userId: userId
+  };
+
+  localStorage.setItem('xchat_user', JSON.stringify(currentUser));
+
+  alert('Cuenta creada correctamente.');
   location.reload();
 };
 
